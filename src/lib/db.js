@@ -75,16 +75,17 @@ export function seedDemoData() {
 
   // Default artisan form schema
   const schema = [
-    { id: uuidv4(), label: 'Full Name', fieldKey: 'fullName', type: 'text', required: true, order: 0 },
-    { id: uuidv4(), label: 'Aadhaar Number', fieldKey: 'aadhaarNumber', type: 'text', required: false, order: 1 },
-    { id: uuidv4(), label: 'Phone Number', fieldKey: 'phone', type: 'text', required: false, order: 2 },
-    { id: uuidv4(), label: 'Bank Account Number', fieldKey: 'bankAccount', type: 'text', required: false, order: 3 },
-    { id: uuidv4(), label: 'IFSC Code', fieldKey: 'ifscCode', type: 'text', required: false, order: 4 },
-    { id: uuidv4(), label: 'Primary Craft Skill', fieldKey: 'craftSkill', type: 'select', required: true, options: ['Weaving','Embroidery','Pottery','Basket Weaving','Block Printing','Jewellery Making','Other'], order: 5 },
-    { id: uuidv4(), label: 'Family ID / BPL Number', fieldKey: 'familyId', type: 'text', required: false, order: 6 },
-    { id: uuidv4(), label: 'Date of Birth', fieldKey: 'dateOfBirth', type: 'date', required: false, order: 7 },
-    { id: uuidv4(), label: 'Photo', fieldKey: 'photo', type: 'photo', required: false, order: 8 },
-    { id: uuidv4(), label: 'Notes', fieldKey: 'notes', type: 'textarea', required: false, order: 9 },
+    { id: uuidv4(), label: 'First Name', fieldKey: 'firstName', type: 'text', required: true, order: 0 },
+    { id: uuidv4(), label: 'Age', fieldKey: 'age', type: 'number', required: false, order: 1 },
+    { id: uuidv4(), label: 'Marital Status', fieldKey: 'maritalStatus', type: 'select', required: true, options: ['Married', 'Unmarried / Single', 'Widowed', 'Divorced / Separated'], order: 2 },
+    { id: uuidv4(), label: 'Caste', fieldKey: 'caste', type: 'select', required: false, options: ['General', 'OBC', 'SC', 'ST', 'Other'], order: 3 },
+    { id: uuidv4(), label: 'Aadhaar Number', fieldKey: 'aadhaarNumber', type: 'text', required: false, order: 4 },
+    { id: uuidv4(), label: 'Education', fieldKey: 'education', type: 'select', required: false, options: ['No Formal Education', 'Primary (5th Pass)', 'Middle (8th Pass)', 'High School (10th Pass)', 'Intermediate (12th Pass)', 'Graduate', 'Other'], order: 5 },
+    { id: uuidv4(), label: 'Relative Works in Trident?', fieldKey: 'tridentRelative', type: 'select', required: true, options: ['No', 'Yes - Factory / Plant', 'Yes - Office / Staff', 'Yes - Other'], order: 6 },
+    { id: uuidv4(), label: 'Trident Relative Details', fieldKey: 'tridentRelativeDetails', type: 'text', required: false, order: 7 },
+    { id: uuidv4(), label: 'Phone Number', fieldKey: 'phone', type: 'text', required: false, order: 8 },
+    { id: uuidv4(), label: 'Primary Craft Skill', fieldKey: 'craftSkill', type: 'select', required: true, options: ['Weaving','Embroidery','Pottery','Basket Weaving','Block Printing','Jewellery Making','Other'], order: 9 },
+    { id: uuidv4(), label: 'Photo', fieldKey: 'photo', type: 'photo', required: false, order: 10 },
   ]
   write('artisanFormSchema', schema)
 
@@ -121,12 +122,12 @@ export function seedDemoData() {
 
   // Artisans
   const artisans = [
-    { id: uuidv4(), villageId: villages[0].id, dynamicFields: { fullName: 'Savitri Devi', aadhaarNumber: '1234-5678-9012', phone: '9811111111', craftSkill: 'Weaving', bankAccount: '12345678901', ifscCode: 'SBIN0001234', familyId: 'BPL-001' }, isActive: true, createdAt: new Date().toISOString() },
-    { id: uuidv4(), villageId: villages[0].id, dynamicFields: { fullName: 'Kamla Prasad', aadhaarNumber: '2345-6789-0123', phone: '9822222222', craftSkill: 'Embroidery', bankAccount: '12345678902', ifscCode: 'SBIN0001234', familyId: 'BPL-002' }, isActive: true, createdAt: new Date().toISOString() },
-    { id: uuidv4(), villageId: villages[1].id, dynamicFields: { fullName: 'Pushpa Rani', aadhaarNumber: '3456-7890-1234', phone: '9833333333', craftSkill: 'Pottery', bankAccount: '12345678903', ifscCode: 'PUNB0001234', familyId: 'BPL-003' }, isActive: true, createdAt: new Date().toISOString() },
-    { id: uuidv4(), villageId: villages[1].id, dynamicFields: { fullName: 'Mala Kumari', aadhaarNumber: '4567-8901-2345', phone: '9844444444', craftSkill: 'Weaving', bankAccount: '12345678904', ifscCode: 'PUNB0001234', familyId: 'BPL-004' }, isActive: true, createdAt: new Date().toISOString() },
-    { id: uuidv4(), villageId: villages[2].id, dynamicFields: { fullName: 'Geeta Devi', aadhaarNumber: '5678-9012-3456', phone: '9855555555', craftSkill: 'Basket Weaving', bankAccount: '12345678905', ifscCode: 'HDFC0001234', familyId: 'BPL-005' }, isActive: true, createdAt: new Date().toISOString() },
-    { id: uuidv4(), villageId: villages[3].id, dynamicFields: { fullName: 'Sunita Yadav', aadhaarNumber: '6789-0123-4567', phone: '9866666666', craftSkill: 'Block Printing', bankAccount: '12345678906', ifscCode: 'HDFC0001234', familyId: 'BPL-006' }, isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), villageId: villages[0].id, dynamicFields: { firstName: 'Savitri Devi', fullName: 'Savitri Devi', age: 34, maritalStatus: 'Married', caste: 'OBC', aadhaarNumber: '1234-5678-9012', education: 'High School (10th Pass)', tridentRelative: 'Yes - Factory / Plant', tridentRelativeDetails: 'Brother-in-law Ramesh in Weaving Dept', phone: '9811111111', craftSkill: 'Weaving' }, isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), villageId: villages[0].id, dynamicFields: { firstName: 'Kamla Prasad', fullName: 'Kamla Prasad', age: 42, maritalStatus: 'Married', caste: 'SC', aadhaarNumber: '2345-6789-0123', education: 'Middle (8th Pass)', tridentRelative: 'No', phone: '9822222222', craftSkill: 'Embroidery' }, isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), villageId: villages[1].id, dynamicFields: { firstName: 'Pushpa Rani', fullName: 'Pushpa Rani', age: 29, maritalStatus: 'Married', caste: 'OBC', aadhaarNumber: '3456-7890-1234', education: 'Intermediate (12th Pass)', tridentRelative: 'Yes - Office / Staff', tridentRelativeDetails: 'Cousin Sunita in Admin', phone: '9833333333', craftSkill: 'Pottery' }, isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), villageId: villages[1].id, dynamicFields: { firstName: 'Mala Kumari', fullName: 'Mala Kumari', age: 24, maritalStatus: 'Unmarried / Single', caste: 'General', aadhaarNumber: '4567-8901-2345', education: 'Graduate', tridentRelative: 'No', phone: '9844444444', craftSkill: 'Weaving' }, isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), villageId: villages[2].id, dynamicFields: { firstName: 'Geeta Devi', fullName: 'Geeta Devi', age: 48, maritalStatus: 'Widowed', caste: 'ST', aadhaarNumber: '5678-9012-3456', education: 'Primary (5th Pass)', tridentRelative: 'No', phone: '9855555555', craftSkill: 'Basket Weaving' }, isActive: true, createdAt: new Date().toISOString() },
+    { id: uuidv4(), villageId: villages[3].id, dynamicFields: { firstName: 'Sunita Yadav', fullName: 'Sunita Yadav', age: 36, maritalStatus: 'Married', caste: 'OBC', aadhaarNumber: '6789-0123-4567', education: 'High School (10th Pass)', tridentRelative: 'No', phone: '9866666666', craftSkill: 'Block Printing' }, isActive: true, createdAt: new Date().toISOString() },
   ]
   write('artisans', artisans)
 

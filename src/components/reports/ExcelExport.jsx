@@ -42,20 +42,24 @@ export default function ExcelExport() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(villageData.length ? villageData : [{}]), 'Villages')
 
     // ── Sheet 3: Artisans ────────────────────────────────────────────────────
-    const sortedSchema = [...artisanFormSchema].sort((a,b) => a.order - b.order)
     const artisanData = artisans.map(a => {
       const village = villages.find(v => v.id === a.villageId)
-      const row = {
+      const f = a.dynamicFields || {}
+      return {
         'Village': village?.name || '',
+        'First Name': f.firstName || f.fullName || '',
+        'Age': f.age || '',
+        'Marital Status': f.maritalStatus || '',
+        'Caste': f.caste || '',
+        'Aadhaar Number': f.aadhaarNumber || '',
+        'Education': f.education || '',
+        'Trident Relative?': f.tridentRelative || 'No',
+        'Trident Relative Details': f.tridentRelativeDetails || '',
+        'Phone Number': f.phone || '',
+        'Craft Skill': f.craftSkill || '',
         'Status': a.isActive ? 'Active' : 'Inactive',
         'Registered Date': formatDate(a.createdAt),
       }
-      sortedSchema.forEach(f => {
-        if (f.type !== 'photo') {
-          row[f.label] = a.dynamicFields?.[f.fieldKey] || ''
-        }
-      })
-      return row
     })
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(artisanData.length ? artisanData : [{}]), 'Artisans')
 

@@ -3,156 +3,381 @@ import useStore from '@/store/useStore'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
-import { Alert } from '@/components/ui/Alert'
 import { Table, Thead, Th, Tbody, Tr, Td, EmptyRow } from '@/components/ui/Table'
-import { Plus, Pencil, Trash2, Search, UserCheck, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Eye, Building2, User } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 
-const FIELD_TYPE_LABELS = {
-  text: 'Text', number: 'Number', date: 'Date',
-  select: 'Dropdown', photo: 'Photo', textarea: 'Long Text'
-}
+const MARITAL_STATUS_OPTIONS = ['Married', 'Unmarried / Single', 'Widowed', 'Divorced / Separated']
+const CASTE_OPTIONS = ['General', 'OBC', 'SC', 'ST', 'Other']
+const EDUCATION_OPTIONS = [
+  'No Formal Education',
+  'Primary (5th Pass)',
+  'Middle (8th Pass)',
+  'High School (10th Pass)',
+  'Intermediate (12th Pass)',
+  'Graduate',
+  'Post Graduate / Other'
+]
+const TRIDENT_OPTIONS = ['No', 'Yes - Factory / Plant', 'Yes - Office / Staff', 'Yes - Other']
+const CRAFT_SKILL_OPTIONS = ['Weaving', 'Embroidery', 'Pottery', 'Basket Weaving', 'Block Printing', 'Jewellery Making', 'Other']
 
-function DynamicArtisanForm({ schema, defaultValues = {}, onSubmit, onCancel }) {
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
-    defaultValues: defaultValues.dynamicFields || {}
+// ─── Modal Form: Register / Edit Artisan ──────────────────────────────────────
+
+function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave }) {
+  const fields = artisan?.dynamicFields || {}
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+    defaultValues: {
+      villageId: artisan?.villageId || defaultVillageId || villages[0]?.id || '',
+      firstName: fields.firstName || fields.fullName || '',
+      age: fields.age || '',
+      maritalStatus: fields.maritalStatus || 'Married',
+      caste: fields.caste || 'OBC',
+      aadhaarNumber: fields.aadhaarNumber || '',
+      education: fields.education || 'High School (10th Pass)',
+      tridentRelative: fields.tridentRelative || 'No',
+      tridentRelativeDetails: fields.tridentRelativeDetails || '',
+      phone: fields.phone || '',
+      craftSkill: fields.craftSkill || 'Weaving',
+      photo: fields.photo || ''
+    }
   })
 
-  const handlePhotoChange = (fieldKey, e) => {
+  const tridentRelativeValue = watch('tridentRelative')
+  const photoValue = watch('photo')
+
+  const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onloadend = () => setValue(fieldKey, reader.result)
+    reader.onloadend = () => setValue('photo', reader.result)
     reader.readAsDataURL(file)
   }
 
+  const onSubmit = (data) => {
+    onSave({
+      villageId: data.villageId,
+      isActive: artisan ? artisan.isActive : true,
+      dynamicFields: {
+        firstName: data.firstName,
+        fullName: data.firstName,
+        age: Number(data.age) || null,
+        maritalStatus: data.maritalStatus,
+        caste: data.caste,
+        aadhaarNumber: data.aadhaarNumber,
+        education: data.education,
+        tridentRelative: data.tridentRelative,
+        tridentRelativeDetails: data.tridentRelativeDetails,
+        phone: data.phone,
+        craftSkill: data.craftSkill,
+        photo: data.photo
+      }
+    })
+  }
+
   return (
-    <form onSubmit={handleSubmit(data => onSubmit({ dynamicFields: data }))} className="space-y-4">
-      {schema.map(field => (
-        <div key={field.id}>
-          <label className="label">{field.label}{field.required && ' *'}</label>
-          {field.type === 'text' && (
-            <input className="input" {...register(field.fieldKey, { required: field.required ? 'Required' : false })} />
-          )}
-          {field.type === 'number' && (
-            <input type="number" className="input" {...register(field.fieldKey, { required: field.required ? 'Required' : false })} />
-          )}
-          {field.type === 'date' && (
-            <input type="date" className="input" {...register(field.fieldKey, { required: field.required ? 'Required' : false })} />
-          )}
-          {field.type === 'textarea' && (
-            <textarea rows={3} className="input resize-none" {...register(field.fieldKey)} />
-          )}
-          {field.type === 'select' && (
-            <select className="input" {...register(field.fieldKey, { required: field.required ? 'Required' : false })}>
-              <option value="">Select…</option>
-              {(field.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+    <Modal open={true} onClose={onClose} title={artisan ? 'Edit Artisan Profile' : 'Register Woman Artisan'} size="lg">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Row 1: Village & First Name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Village *</label>
+            <select
+              className="input"
+              {...register('villageId', { required: 'Village is required' })}
+            >
+              {villages.map(v => (
+                <option key={v.id} value={v.id}>{v.name} ({v.district || 'Village'})</option>
+              ))}
             </select>
-          )}
-          {field.type === 'photo' && (
-            <div className="space-y-2">
-              <input type="file" accept="image/*" className="input py-1.5" onChange={e => handlePhotoChange(field.fieldKey, e)} />
-              {watch(field.fieldKey) && (
-                <img src={watch(field.fieldKey)} alt="Preview" className="w-20 h-20 rounded-xl object-cover border" />
-              )}
-            </div>
-          )}
-          {errors[field.fieldKey] && <p className="text-xs text-red-500 mt-1">{errors[field.fieldKey].message}</p>}
+            {errors.villageId && <p className="text-xs text-red-500 mt-1">{errors.villageId.message}</p>}
+          </div>
+
+          <div>
+            <label className="label">First Name / Full Name *</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. Savitri Devi"
+              {...register('firstName', { required: 'First name is required' })}
+            />
+            {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName.message}</p>}
+          </div>
         </div>
-      ))}
-      <div className="flex gap-2 pt-2">
-        <Button type="submit">Save Artisan</Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
-      </div>
-    </form>
+
+        {/* Row 2: Age, Marital Status & Caste */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="label">Age (Years) *</label>
+            <input
+              type="number"
+              min="16"
+              max="99"
+              className="input"
+              placeholder="e.g. 32"
+              {...register('age', {
+                required: 'Age is required',
+                valueAsNumber: true,
+                min: { value: 16, message: 'Minimum 16' },
+                max: { value: 99, message: 'Valid age' }
+              })}
+            />
+            {errors.age && <p className="text-xs text-red-500 mt-1">{errors.age.message}</p>}
+          </div>
+
+          <div>
+            <label className="label">Marital Status *</label>
+            <select className="input" {...register('maritalStatus', { required: 'Required' })}>
+              {MARITAL_STATUS_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Caste / Category *</label>
+            <select className="input" {...register('caste', { required: 'Required' })}>
+              {CASTE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 3: Aadhaar Number & Education */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Aadhaar Number</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="XXXX-XXXX-XXXX (12 digits)"
+              {...register('aadhaarNumber')}
+            />
+          </div>
+
+          <div>
+            <label className="label">Education Level *</label>
+            <select className="input" {...register('education')}>
+              {EDUCATION_OPTIONS.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 4: Trident Relative question */}
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-amber-700" />
+            <label className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+              Whether some of their relative work in Trident? *
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <select className="input bg-white" {...register('tridentRelative')}>
+                {TRIDENT_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            {tridentRelativeValue && tridentRelativeValue !== 'No' && (
+              <div>
+                <input
+                  type="text"
+                  className="input bg-white"
+                  placeholder="Relative name, relationship & department"
+                  {...register('tridentRelativeDetails')}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Row 5: Contact & Craft Skill */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Phone Number</label>
+            <input
+              type="tel"
+              className="input"
+              placeholder="10-digit mobile number"
+              {...register('phone')}
+            />
+          </div>
+
+          <div>
+            <label className="label">Primary Craft Skill *</label>
+            <select className="input" {...register('craftSkill')}>
+              {CRAFT_SKILL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 6: Photo Upload */}
+        <div>
+          <label className="label">Artisan Photo (Optional)</label>
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept="image/*"
+              className="input py-1.5 flex-1 text-xs"
+              onChange={handlePhotoUpload}
+            />
+            {photoValue && (
+              <img
+                src={photoValue}
+                alt="Preview"
+                className="w-12 h-12 rounded-xl object-cover border border-primary-200 flex-shrink-0"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+          <Button variant="ghost" type="button" onClick={onClose}>Cancel</Button>
+          <Button type="submit">
+            {artisan ? 'Update Artisan' : 'Save & Register Artisan'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
-function ArtisanProfile({ artisan, schema, onClose }) {
-  const fields = artisan.dynamicFields || {}
-  const photoField = schema.find(f => f.type === 'photo')
-  const photo = photoField ? fields[photoField.fieldKey] : null
-  const nameField = schema.find(f => f.fieldKey === 'fullName')
-  const name = nameField ? fields[nameField.fieldKey] : 'Artisan'
+// ─── Modal: Artisan Profile Viewer ────────────────────────────────────────────
+
+function ArtisanProfileModal({ artisan, village, onClose }) {
+  const f = artisan.dynamicFields || {}
+  const name = f.firstName || f.fullName || 'Artisan'
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        {photo ? (
-          <img src={photo} alt={name} className="w-20 h-20 rounded-2xl object-cover border-2 border-primary-200" />
-        ) : (
-          <div className="w-20 h-20 rounded-2xl bg-primary-50 flex items-center justify-center text-3xl">👩</div>
-        )}
-        <div>
-          <h3 className="font-bold text-xl text-gray-900">{name}</h3>
-          <p className="text-sm text-gray-400">Registered: {formatDate(artisan.createdAt)}</p>
-          <Badge variant={artisan.isActive ? 'success' : 'danger'} className="mt-1">
-            {artisan.isActive ? 'Active' : 'Inactive'}
-          </Badge>
+    <Modal open={true} onClose={onClose} title="Artisan Profile Card" size="md">
+      <div className="space-y-4">
+        {/* Header Header Card */}
+        <div className="flex items-center gap-4 bg-primary-50/70 border border-primary-100 p-4 rounded-2xl">
+          {f.photo ? (
+            <img src={f.photo} alt={name} className="w-16 h-16 rounded-2xl object-cover border-2 border-primary-300 flex-shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-primary-200 flex items-center justify-center text-3xl flex-shrink-0">
+              👩
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-extrabold text-lg text-gray-900 truncate">{name}</h3>
+            <p className="text-xs text-primary-700 font-semibold">{village?.name || 'Village'} Village</p>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="primary">{f.craftSkill || 'Craft'}</Badge>
+              <Badge variant={artisan.isActive ? 'success' : 'danger'}>
+                {artisan.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <span className="text-gray-400 block font-medium">Age</span>
+            <strong className="text-sm text-gray-900">{f.age ? `${f.age} years` : '—'}</strong>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <span className="text-gray-400 block font-medium">Marital Status</span>
+            <strong className="text-sm text-gray-900">{f.maritalStatus || '—'}</strong>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <span className="text-gray-400 block font-medium">Caste / Category</span>
+            <strong className="text-sm text-gray-900">{f.caste || '—'}</strong>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <span className="text-gray-400 block font-medium">Education</span>
+            <strong className="text-sm text-gray-900">{f.education || '—'}</strong>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <span className="text-gray-400 block font-medium">Aadhaar Number</span>
+            <strong className="text-sm text-gray-900">{f.aadhaarNumber || '—'}</strong>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <span className="text-gray-400 block font-medium">Phone Number</span>
+            <strong className="text-sm text-gray-900">{f.phone || '—'}</strong>
+          </div>
+        </div>
+
+        {/* Trident Relation Card */}
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 text-xs">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Building2 className="w-3.5 h-3.5 text-amber-700" />
+            <span className="font-bold text-amber-900 uppercase tracking-wider text-[11px]">
+              Relative Working in Trident?
+            </span>
+          </div>
+          <p className="font-bold text-sm text-gray-900">{f.tridentRelative || 'No'}</p>
+          {f.tridentRelativeDetails && (
+            <p className="text-gray-600 mt-1 italic text-[11px]">{f.tridentRelativeDetails}</p>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-gray-100">
+          <Button variant="ghost" onClick={onClose}>Close</Button>
         </div>
       </div>
-      <div className="divider" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {schema.filter(f => f.type !== 'photo').map(f => {
-          const val = fields[f.fieldKey]
-          if (!val) return null
-          return (
-            <div key={f.id} className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-400 font-medium mb-1">{f.label}</p>
-              <p className="text-sm text-gray-800 font-semibold break-words">{val}</p>
-            </div>
-          )
-        })}
-      </div>
-      <Button variant="secondary" onClick={onClose} className="w-full">Close</Button>
-    </div>
+    </Modal>
   )
 }
+
+// ─── Main Artisan Directory Page ──────────────────────────────────────────────
 
 export default function ArtisanDirectory({ filterVillageId }) {
-  const { artisans, villages, artisanFormSchema, addArtisan, updateArtisan, deleteArtisan } = useStore()
+  const { artisans = [], villages = [], addArtisan, updateArtisan, deleteArtisan } = useStore()
   const [modalOpen, setModalOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(null)
-  const [editing, setEditing] = useState(null)
+  const [editingArtisan, setEditingArtisan] = useState(null)
+  const [profileArtisan, setProfileArtisan] = useState(null)
   const [search, setSearch] = useState('')
   const [villageFilter, setVillageFilter] = useState(filterVillageId || '')
 
   const filtered = artisans.filter(a => {
     if (villageFilter && a.villageId !== villageFilter) return false
     if (search) {
-      const name = (a.dynamicFields?.fullName || '').toLowerCase()
-      if (!name.includes(search.toLowerCase())) return false
+      const f = a.dynamicFields || {}
+      const name = (f.firstName || f.fullName || '').toLowerCase()
+      const phone = (f.phone || '').toLowerCase()
+      const aadhaar = (f.aadhaarNumber || '').toLowerCase()
+      const s = search.toLowerCase()
+      if (!name.includes(s) && !phone.includes(s) && !aadhaar.includes(s)) return false
     }
     return true
   })
 
-  const handleSubmit = (data) => {
-    const payload = { ...data, villageId: villageFilter || (villages[0]?.id || ''), isActive: true }
-    if (editing) updateArtisan(editing.id, payload)
-    else addArtisan(payload)
-    setModalOpen(false); setEditing(null)
-  }
-
   return (
-    <div>
-      <div className="section-header flex-wrap gap-3">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Artisans Directory</h2>
-          <p className="text-xs text-gray-400">{filtered.length} artisans found</p>
+          <h2 className="text-base font-bold text-gray-900">Women Artisans Directory</h2>
+          <p className="text-xs text-gray-400">Total {filtered.length} registered artisans across villages</p>
         </div>
-        <Button onClick={() => { setEditing(null); setModalOpen(true) }}>
-          <Plus className="w-4 h-4" /> Register Artisan
+        <Button onClick={() => { setEditingArtisan(null); setModalOpen(true) }}>
+          <Plus className="w-4 h-4" />
+          Register Artisan
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input className="input pl-9" placeholder="Search by name…" value={search} onChange={e => setSearch(e.target.value)} />
+      {/* Search & Village Filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            className="input pl-9 text-xs"
+            placeholder="Search by name, phone, or Aadhaar…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-        <select className="input w-auto min-w-40"
+
+        <select
+          className="input w-auto text-xs"
           value={villageFilter}
           onChange={e => setVillageFilter(e.target.value)}
         >
@@ -161,95 +386,170 @@ export default function ArtisanDirectory({ filterVillageId }) {
         </select>
       </div>
 
-      <Table>
+      {/* Artisans Table */}
+      <Table padding="compact">
         <Thead>
           <tr>
-            <Th>Artisan</Th>
+            <Th>Artisan Name</Th>
             <Th>Village</Th>
-            <Th>Craft Skill</Th>
-            <Th>Phone</Th>
-            <Th>Status</Th>
-            <Th>Registered</Th>
-            <Th></Th>
+            <Th>Age & Status</Th>
+            <Th>Caste</Th>
+            <Th>Education</Th>
+            <Th>Trident Relative?</Th>
+            <Th>Skill</Th>
+            <Th>Phone / Aadhaar</Th>
+            <Th className="text-right">Actions</Th>
           </tr>
         </Thead>
         <Tbody>
-          {filtered.length === 0 && <EmptyRow cols={7} message="No artisans found" />}
-          {filtered.map(a => {
-            const f = a.dynamicFields || {}
-            const village = villages.find(v => v.id === a.villageId)
-            const photoField = artisanFormSchema.find(s => s.type === 'photo')
-            const photo = photoField ? f[photoField.fieldKey] : null
-            return (
-              <Tr key={a.id}>
-                <Td>
-                  <div className="flex items-center gap-2">
-                    {photo ? (
-                      <img src={photo} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+          {filtered.length === 0 ? (
+            <EmptyRow cols={9} message="No artisans registered matching your filters." />
+          ) : (
+            filtered.map(a => {
+              const f = a.dynamicFields || {}
+              const village = villages.find(v => v.id === a.villageId)
+              const name = f.firstName || f.fullName || 'Artisan'
+              const hasTrident = f.tridentRelative && f.tridentRelative !== 'No'
+
+              return (
+                <Tr key={a.id}>
+                  {/* Name + Photo */}
+                  <Td>
+                    <div className="flex items-center gap-2.5">
+                      {f.photo ? (
+                        <img src={f.photo} alt={name} className="w-8 h-8 rounded-full object-cover border border-primary-200 flex-shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm flex-shrink-0">
+                          👩
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm leading-tight">{name}</p>
+                        <span className="text-[10px] text-gray-400">Reg: {formatDate(a.createdAt)}</span>
+                      </div>
+                    </div>
+                  </Td>
+
+                  {/* Village */}
+                  <Td>
+                    <span className="font-medium text-xs text-gray-800">{village?.name || '—'}</span>
+                  </Td>
+
+                  {/* Age & Marital Status */}
+                  <Td>
+                    <div className="text-xs">
+                      <span className="font-bold text-gray-900">{f.age ? `${f.age} yrs` : '—'}</span>
+                      <p className="text-[10px] text-gray-400">{f.maritalStatus || '—'}</p>
+                    </div>
+                  </Td>
+
+                  {/* Caste */}
+                  <Td>
+                    <Badge variant="secondary">{f.caste || '—'}</Badge>
+                  </Td>
+
+                  {/* Education */}
+                  <Td>
+                    <span className="text-xs text-gray-700 font-medium">{f.education || '—'}</span>
+                  </Td>
+
+                  {/* Trident Relative */}
+                  <Td>
+                    {hasTrident ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full" title={f.tridentRelativeDetails || f.tridentRelative}>
+                        <Building2 className="w-3 h-3" />
+                        {f.tridentRelative}
+                      </span>
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-sm flex-shrink-0">👩</div>
+                      <span className="text-xs text-gray-400 font-medium">No</span>
                     )}
-                    <span className="font-medium text-gray-900">{f.fullName || '—'}</span>
-                  </div>
-                </Td>
-                <Td>{village?.name || '—'}</Td>
-                <Td>{f.craftSkill || '—'}</Td>
-                <Td>{f.phone || '—'}</Td>
-                <Td>
-                  <Badge variant={a.isActive ? 'success' : 'danger'}>
-                    {a.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </Td>
-                <Td>{formatDate(a.createdAt)}</Td>
-                <Td>
-                  <div className="flex items-center gap-1">
-                    <button className="btn-ghost p-1.5" onClick={() => setProfileOpen(a)} title="View Profile">
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="btn-ghost p-1.5" onClick={() => { setEditing(a); setModalOpen(true) }} title="Edit">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"
-                      onClick={() => { if (confirm(`Remove ${f.fullName}?`)) deleteArtisan(a.id) }}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </Td>
-              </Tr>
-            )
-          })}
+                  </Td>
+
+                  {/* Skill */}
+                  <Td>
+                    <Badge variant="primary">{f.craftSkill || 'Craft'}</Badge>
+                  </Td>
+
+                  {/* Phone / Aadhaar */}
+                  <Td>
+                    <div className="text-xs">
+                      <p className="font-semibold text-gray-800">{f.phone || '—'}</p>
+                      {f.aadhaarNumber && (
+                        <p className="text-[10px] text-gray-400 font-mono">{f.aadhaarNumber}</p>
+                      )}
+                    </div>
+                  </Td>
+
+                  {/* Actions */}
+                  <Td className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setProfileArtisan(a)}
+                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                        title="View Full Profile"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setEditingArtisan(a)
+                          setModalOpen(true)
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Edit Details"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove artisan ${name}?`)) deleteArtisan(a.id)
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Artisan"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </Td>
+                </Tr>
+              )
+            })
+          )}
         </Tbody>
       </Table>
 
-      {/* Register / Edit Modal */}
-      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }}
-        title={editing ? 'Edit Artisan' : 'Register Artisan'} size="lg">
-        {!villageFilter && !editing && (
-          <div className="mb-4">
-            <label className="label">Village *</label>
-            <select className="input" id="villageSelect">
-              {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
-          </div>
-        )}
-        <DynamicArtisanForm
-          schema={artisanFormSchema.sort((a,b) => a.order - b.order)}
-          defaultValues={editing || {}}
-          onSubmit={(data) => {
-            const villageId = editing?.villageId || villageFilter ||
-              (document.getElementById('villageSelect')?.value || villages[0]?.id)
-            handleSubmit({ ...data, villageId })
+      {/* Modal: Register / Edit Artisan */}
+      {modalOpen && (
+        <ArtisanFormModal
+          artisan={editingArtisan}
+          villages={villages}
+          defaultVillageId={villageFilter}
+          onClose={() => {
+            setModalOpen(false)
+            setEditingArtisan(null)
           }}
-          onCancel={() => { setModalOpen(false); setEditing(null) }}
+          onSave={(data) => {
+            if (editingArtisan) {
+              updateArtisan(editingArtisan.id, data)
+            } else {
+              addArtisan(data)
+            }
+            setModalOpen(false)
+            setEditingArtisan(null)
+          }}
         />
-      </Modal>
+      )}
 
-      {/* Profile Modal */}
-      <Modal open={!!profileOpen} onClose={() => setProfileOpen(null)} title="Artisan Profile" size="md">
-        {profileOpen && (
-          <ArtisanProfile artisan={profileOpen} schema={artisanFormSchema} onClose={() => setProfileOpen(null)} />
-        )}
-      </Modal>
+      {/* Modal: Profile Viewer */}
+      {profileArtisan && (
+        <ArtisanProfileModal
+          artisan={profileArtisan}
+          village={villages.find(v => v.id === profileArtisan.villageId)}
+          onClose={() => setProfileArtisan(null)}
+        />
+      )}
     </div>
   )
 }
