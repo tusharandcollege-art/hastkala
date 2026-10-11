@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar, MobileNav } from './Sidebar'
-import { useLocation } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
+import { LogOut } from 'lucide-react'
 
 const PAGE_TITLES = {
   '/':          { title: 'Dashboard', subtitle: 'Overview of your craft supply chain' },
@@ -15,6 +16,7 @@ const PAGE_TITLES = {
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const { pathname } = useLocation()
+  const { user, logout } = useAuth()
   const page = PAGE_TITLES[pathname] || { title: 'Hastkala', subtitle: '' }
 
   return (
@@ -39,6 +41,14 @@ export default function Layout() {
               <span className="w-1.5 h-1.5 rounded-full bg-primary-500 inline-block animate-pulse" />
               Live Data
             </span>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded-xl transition-colors font-medium border border-gray-200 cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
           </div>
         </header>
 

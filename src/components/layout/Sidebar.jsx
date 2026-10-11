@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, MapPin, Package, Warehouse, ShoppingCart,
-  BarChart3, ChevronLeft, ChevronRight, Menu, X
+  BarChart3, ChevronLeft, ChevronRight, Menu, X, LogOut, User
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 const NAV = [
   { to: '/',            icon: LayoutDashboard, label: 'Dashboard' },
@@ -16,6 +17,8 @@ const NAV = [
 ]
 
 export function Sidebar({ collapsed, onCollapse }) {
+  const { user, logout } = useAuth()
+
   return (
     <aside className={cn(
       'hidden md:flex flex-col h-screen bg-white border-r border-gray-100 transition-all duration-300 flex-shrink-0',
@@ -54,6 +57,37 @@ export function Sidebar({ collapsed, onCollapse }) {
         ))}
       </nav>
 
+      {/* User & Logout section */}
+      <div className="p-2 border-t border-gray-100">
+        {!collapsed ? (
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-gray-50 border border-gray-100">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'A'}
+              </div>
+              <div className="truncate">
+                <p className="text-xs font-bold text-gray-800 truncate">{user?.username || 'Admin'}</p>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={logout}
+            title="Sign Out"
+            className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* Collapse toggle */}
       <button
         onClick={onCollapse}
@@ -72,6 +106,7 @@ export function Sidebar({ collapsed, onCollapse }) {
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const location = useLocation()
+  const { user, logout } = useAuth()
 
   return (
     <>
@@ -115,6 +150,19 @@ export function MobileNav() {
                 </NavLink>
               ))}
             </nav>
+
+            <div className="p-3 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  logout()
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out ({user?.username || 'Admin'})</span>
+              </button>
+            </div>
           </aside>
         </div>
       )}
