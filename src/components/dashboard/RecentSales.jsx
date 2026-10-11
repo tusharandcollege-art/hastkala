@@ -33,7 +33,12 @@ export default function RecentSales() {
                   className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{sale.customerName || 'Customer'}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{sale.customerName || 'Customer'}</p>
+                      {sale.customerPhone && (
+                        <span className="text-[10px] text-gray-400 font-medium">({sale.customerPhone})</span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 truncate">
                       {Array.isArray(sale.items)
                         ? sale.items.map(i => `${i.name || 'Item'} ×${i.qty || 1}`).join(', ')

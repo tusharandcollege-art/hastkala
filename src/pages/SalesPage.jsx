@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Card } from '@/components/ui/Card'
 import {
   ShoppingCart, Plus, Minus, Trash2, CheckCircle2,
-  Banknote, Smartphone, RotateCcw, User, Clock, Search, X, Calendar
+  Banknote, Smartphone, RotateCcw, User, Clock, Search, X, Calendar, Phone
 } from 'lucide-react'
 import { differenceInMinutes, parseISO, isValid } from 'date-fns'
 
@@ -121,7 +121,7 @@ function ProductGrid({ craftProducts, getInventoryQty, onAdd }) {
 
 // ─── Checkout Confirmation Modal ──────────────────────────────────────────────
 
-function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustomerName, saleDate, setSaleDate, paymentMode, setPaymentMode, onClose, onConfirm }) {
+function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustomerName, customerPhone, setCustomerPhone, saleDate, setSaleDate, paymentMode, setPaymentMode, onClose, onConfirm }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const currentTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 
@@ -139,7 +139,7 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
   return (
     <Modal open={true} onClose={onClose} title="Confirm Sales Transaction" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Customer Details & Date */}
+        {/* Customer Details, Mobile & Date */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Customer Name</label>
@@ -157,6 +157,22 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
           </div>
 
           <div>
+            <label className="label">Customer Mobile Number</label>
+            <div className="relative">
+              <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="tel"
+                maxLength={13}
+                className="input pl-9"
+                placeholder="e.g. 9876543210"
+                value={customerPhone}
+                onChange={e => setCustomerPhone(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-2">
             <label className="label">Sale Date *</label>
             <div className="relative">
               <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -361,9 +377,17 @@ function SalesRegister() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-900 truncate">
-                    {sale.customerName || 'Walk-in Customer'}
-                  </p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-semibold text-gray-900 truncate">
+                      {sale.customerName || 'Walk-in Customer'}
+                    </p>
+                    {sale.customerPhone && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-gray-500 font-medium bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                        <Phone className="w-2.5 h-2.5 text-primary-500" />
+                        <span>{sale.customerPhone}</span>
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-gray-400 truncate">
                     {Array.isArray(sale.items)
                       ? sale.items.map(i => `${i.name || 'Item'} × ${i.qty || 1}`).join(', ')
@@ -419,6 +443,7 @@ export default function SalesPage() {
 
   const [cart, setCart] = useState([])
   const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
   const [saleDate, setSaleDate] = useState(() => today())
   const [paymentMode, setPaymentMode] = useState('Cash')
   const [showCheckout, setShowCheckout] = useState(false)
@@ -475,6 +500,7 @@ export default function SalesPage() {
       addSale({
         date: saleDate || today(),
         customerName: customerName.trim() || 'Walk-in Customer',
+        customerPhone: customerPhone.trim() || '',
         paymentMode,
         items: cart.map(item => ({
           craftProductId: item.id,
@@ -497,6 +523,7 @@ export default function SalesPage() {
       // Guaranteed to reset cart and close modal
       setCart([])
       setCustomerName('')
+      setCustomerPhone('')
       setSaleDate(today())
       setShowCheckout(false)
     }
@@ -652,6 +679,8 @@ export default function SalesPage() {
           totalProfit={totalProfit}
           customerName={customerName}
           setCustomerName={setCustomerName}
+          customerPhone={customerPhone}
+          setCustomerPhone={setCustomerPhone}
           saleDate={saleDate}
           setSaleDate={setSaleDate}
           paymentMode={paymentMode}
