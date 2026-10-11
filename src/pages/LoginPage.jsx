@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/Button'
-import { Lock, User, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles } from 'lucide-react'
+import { Lock, User, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 
 export default function LoginPage() {
-  const { login, credentials, changeCredentials } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/'
@@ -15,12 +15,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // Quick Change Credentials Modal / State
-  const [showChangeModal, setShowChangeModal] = useState(false)
-  const [newUsername, setNewUsername] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [changeSuccess, setChangeSuccess] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -36,22 +30,6 @@ export default function LoginPage() {
         setError(res.error || 'Invalid credentials')
       }
     }, 250)
-  }
-
-  const handleUpdateCreds = (e) => {
-    e.preventDefault()
-    if (!newUsername.trim() || !newPassword.trim()) return
-    changeCredentials(newUsername.trim(), newPassword.trim())
-    setChangeSuccess('Credentials updated successfully! Use your new details to sign in.')
-    setShowChangeModal(false)
-    setUsername(newUsername.trim())
-    setPassword('')
-  }
-
-  const fillDefaultCredentials = () => {
-    setUsername(credentials.username)
-    setPassword(credentials.password)
-    setError('')
   }
 
   return (
@@ -137,83 +115,13 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Quick Helper Credentials Card */}
-          <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-gray-500 bg-amber-50/70 border border-amber-200/60 rounded-xl p-3">
-              <div className="space-y-0.5">
-                <p className="font-semibold text-gray-700 flex items-center gap-1">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-600" /> Default Credentials:
-                </p>
-                <p className="text-[11px] text-gray-600">
-                  User: <strong className="text-gray-800">{credentials.username}</strong> | Pass: <strong className="text-gray-800">{credentials.password}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={fillDefaultCredentials}
-                className="text-[11px] font-bold text-primary-600 hover:text-primary-700 underline bg-white px-2 py-1 rounded-lg border border-amber-200 shadow-2xs cursor-pointer"
-              >
-                Auto-fill
-              </button>
-            </div>
-
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setNewUsername(credentials.username)
-                  setNewPassword(credentials.password)
-                  setShowChangeModal(true)
-                }}
-                className="text-xs text-gray-500 hover:text-gray-800 font-medium inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Sparkles className="w-3 h-3 text-amber-500" />
-                Change Password / Username
-              </button>
-            </div>
+          {/* Secure Portal Footer */}
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+            <p className="text-[11px] text-gray-400 font-medium">
+              🔒 Authorized Personnel Only • Protected System
+            </p>
           </div>
         </div>
-
-        {/* Change Credentials Modal */}
-        {showChangeModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-gray-100 animate-fade-in">
-              <h3 className="font-bold text-base text-gray-900">Change Login Credentials</h3>
-              <p className="text-xs text-gray-500">Update your access username and password.</p>
-
-              <form onSubmit={handleUpdateCreds} className="space-y-3">
-                <div>
-                  <label className="label">New Username</label>
-                  <input
-                    type="text"
-                    required
-                    value={newUsername}
-                    onChange={(e) => setNewUsername(e.target.value)}
-                    className="input text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="label">New Password</label>
-                  <input
-                    type="text"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="input text-xs"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                  <Button variant="ghost" size="sm" type="button" onClick={() => setShowChangeModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="primary" size="sm" type="submit">
-                    Save New Credentials
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
