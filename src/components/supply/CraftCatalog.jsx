@@ -129,28 +129,39 @@ function ReceiveCraftShipmentModal({ product, onClose, onConfirm }) {
 
 function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfirm }) {
   const isZeroStock = catalogBalance <= 0
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    defaultValues: {
-      quantity: isZeroStock ? '10' : Math.min(catalogBalance, 10).toString(),
-      date: today(),
-      notes: ''
+  const [quantity, setQuantity] = useState(() => (isZeroStock ? '10' : Math.min(catalogBalance, 10).toString()))
+  const [date, setDate] = useState(() => today())
+  const [notes, setNotes] = useState('')
+  const [error, setError] = useState('')
+
+  const qty = Number(quantity) || 0
+
+  const handleSend = (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
     }
-  })
-
-  const qty = Number(watch('quantity')) || 0
-
-  const onSubmit = (data) => {
+    const numQty = Number(quantity)
+    if (!numQty || isNaN(numQty) || numQty <= 0) {
+      setError('Please enter a valid quantity of at least 1')
+      return
+    }
+    if (!isZeroStock && numQty > catalogBalance) {
+      setError(`Cannot exceed catalog balance (${catalogBalance})`)
+      return
+    }
+    setError('')
     onConfirm({
       craftProductId: product.id,
-      quantity: Number(data.quantity),
-      date: data.date,
-      notes: data.notes
+      quantity: numQty,
+      date: date || today(),
+      notes: notes ? notes.trim() : ''
     })
   }
 
   return (
     <Modal open={true} onClose={onClose} title="Send to Store Inventory" size="md">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSend} className="space-y-4">
         <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">{product.category || 'Craft'}</span>
@@ -192,20 +203,15 @@ function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfi
             min="1"
             max={isZeroStock ? undefined : catalogBalance}
             className="input"
+            value={quantity}
+            onChange={(e) => {
+              setQuantity(e.target.value)
+              if (error) setError('')
+            }}
             placeholder={isZeroStock ? 'Enter quantity to send' : `Max ${catalogBalance}`}
-            {...register('quantity', {
-              required: 'Quantity is required',
-              valueAsNumber: true,
-              min: { value: 1, message: 'Must be at least 1' },
-              validate: (val) => {
-                if (!isZeroStock && val > catalogBalance) {
-                  return `Cannot exceed catalog balance (${catalogBalance})`
-                }
-                return true
-              }
-            })}
+            required
           />
-          {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity.message}</p>}
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -214,7 +220,9 @@ function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfi
             <input
               type="date"
               className="input"
-              {...register('date', { required: 'Date is required' })}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
             />
           </div>
           <div>
@@ -223,7 +231,8 @@ function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfi
               type="text"
               className="input"
               placeholder="e.g. Rack A-3 display"
-              {...register('notes')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
         </div>
@@ -237,7 +246,7 @@ function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfi
 
         <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
           <Button variant="ghost" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary">
+          <Button type="button" onClick={handleSend} variant="primary">
             <Send className="w-4 h-4" />
             Send to Store Inventory
           </Button>
