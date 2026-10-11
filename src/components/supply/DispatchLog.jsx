@@ -272,6 +272,107 @@ function DispatchForm({ onSubmit, onCancel }) {
   )
 }
 
+// ─── Dispatch History Helper & Modal ───────────────────────────────────────────
+
+function getDispatchHistoryEntries(dispatch) {
+  if (Array.isArray(dispatch?.history) && dispatch.history.length > 0) {
+    return dispatch.history
+  }
+  const notesStr = dispatch?.notes || ''
+  if (!notesStr) {
+    return [{
+      quantity: dispatch?.quantityDispatched || 0,
+      date: dispatch?.date || (dispatch?.createdAt ? dispatch.createdAt.slice(0, 10) : today()),
+      notes: 'Initial dispatch intake'
+    }]
+  }
+
+  const parts = notesStr.split(' | ')
+  return parts.map((part, idx) => {
+    const match = part.match(/\(\+(\d+(\.\d+)?)(?: on ([^:]+))?:\s*(.+)\)/)
+    if (match) {
+      return {
+        quantity: Number(match[1]),
+        date: match[3] || dispatch?.date || today(),
+        notes: match[4] || 'Additional batch added'
+      }
+    }
+    return {
+      quantity: idx === 0 ? Number(dispatch?.quantityDispatched) || 0 : 0,
+      date: dispatch?.date || today(),
+      notes: part
+    }
+  })
+}
+
+function DispatchHistoryModal({ dispatch, onAddMore, onClose }) {
+  const entries = getDispatchHistoryEntries(dispatch)
+  const total = Number(dispatch.quantityDispatched) || 0
+  const unit = dispatch.material?.unit || 'units'
+
+  return (
+    <Modal open={true} onClose={onClose} title="Dispatch History & Remarks" size="md">
+      <div className="space-y-4">
+        {/* Context Card */}
+        <div className="bg-primary-50/70 border border-primary-200/80 rounded-2xl p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+              {dispatch.material?.name || 'Raw Material'}
+            </span>
+            <Badge variant="primary">🏡 {dispatch.village?.name || 'Village'}</Badge>
+          </div>
+          <div className="flex justify-between items-baseline pt-1">
+            <span className="text-xs text-gray-600">
+              Recipient: <strong className="text-gray-900">{dispatch.artisan?.dynamicFields?.fullName || 'Village General'}</strong>
+            </span>
+            <span className="text-sm font-extrabold text-primary-900">
+              Total Dispatched: {total} {unit}
+            </span>
+          </div>
+        </div>
+
+        {/* History Timeline */}
+        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+          {entries.map((entry, idx) => (
+            <div key={idx} className="p-3 bg-gray-50 border border-gray-100 rounded-xl space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-800">
+                  {idx === 0 ? 'Batch #1 (Initial Dispatch)' : `Top-up #${idx + 1}`}
+                </span>
+                <span className="text-[11px] text-gray-400 font-medium">
+                  {formatDate(entry.date)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <p className="text-gray-600 italic">"{entry.notes || 'No remarks recorded'}"</p>
+                {entry.quantity > 0 && (
+                  <Badge variant={idx === 0 ? 'secondary' : 'success'} className="font-bold flex-shrink-0">
+                    {idx === 0 ? '' : '+'}{entry.quantity} {unit}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+          <Button
+            size="sm"
+            onClick={() => {
+              onClose()
+              onAddMore(dispatch)
+            }}
+            className="rounded-xl"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add More Qty
+          </Button>
+          <Button variant="secondary" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Main DispatchLog Component ───────────────────────────────────────────────
 
 export default function DispatchLog() {
@@ -282,6 +383,7 @@ export default function DispatchLog() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [topUpDispatch, setTopUpDispatch] = useState(null)
+  const [historyDispatch, setHistoryDispatch] = useState(null)
   const [villageFilter, setVillageFilter] = useState('')
   const [materialFilter, setMaterialFilter] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -539,15 +641,26 @@ export default function DispatchLog() {
 
               <Td>{formatDate(d.date || d.createdAt)}</Td>
 
-              <Td className="max-w-44">
-                <p className="text-xs text-gray-600 truncate" title={d.notes || '—'}>
-                  {d.notes || '—'}
-                </p>
-                {d.updatedAt && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] text-primary-600 mt-0.5">
-                    <History className="w-2.5 h-2.5" /> updated
-                  </span>
-                )}
+              <Td>
+                <div className="flex flex-col items-start gap-1">
+                  <button
+                    onClick={() => setHistoryDispatch(d)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold bg-gray-50 hover:bg-primary-50 text-gray-700 hover:text-primary-800 border border-gray-200 hover:border-primary-300 transition-all cursor-pointer shadow-2xs group"
+                    title="Click to view history timeline and notes"
+                  >
+                    <History className="w-3.5 h-3.5 text-primary-600 group-hover:rotate-[-45deg] transition-transform" />
+                    <span>History ({getDispatchHistoryEntries(d).length})</span>
+                  </button>
+                  {d.notes && (
+                    <p
+                      onClick={() => setHistoryDispatch(d)}
+                      className="text-[11px] text-gray-400 hover:text-gray-600 truncate max-w-44 cursor-pointer"
+                      title="Click to view full notes"
+                    >
+                      {d.notes}
+                    </p>
+                  )}
+                </div>
               </Td>
 
               <Td className="text-right">
@@ -592,6 +705,15 @@ export default function DispatchLog() {
           dispatch={topUpDispatch}
           onClose={() => setTopUpDispatch(null)}
           onConfirm={handleTopUpConfirm}
+        />
+      )}
+
+      {/* Dispatch History & Remarks Modal */}
+      {historyDispatch && (
+        <DispatchHistoryModal
+          dispatch={historyDispatch}
+          onAddMore={(disp) => setTopUpDispatch(disp)}
+          onClose={() => setHistoryDispatch(null)}
         />
       )}
     </div>

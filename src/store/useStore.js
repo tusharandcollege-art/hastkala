@@ -338,7 +338,19 @@ const useStore = create((set, get) => {
 
     // ── Dispatches (Raw Materials to Village/Artisan) ──
     addDispatch: (data) => {
-      const doc = addDoc('dispatches', data)
+      const qty = Number(data.quantityDispatched) || 0
+      const initialEntry = {
+        id: uuidv4(),
+        quantity: qty,
+        date: data.date || new Date().toISOString().slice(0, 10),
+        notes: data.notes || 'Initial batch intake dispatch',
+        createdAt: new Date().toISOString()
+      }
+      const doc = addDoc('dispatches', {
+        ...data,
+        quantityDispatched: qty,
+        history: [initialEntry]
+      })
       set(s => ({ dispatches: [...s.dispatches, doc] }))
       return doc
     },
@@ -350,13 +362,36 @@ const useStore = create((set, get) => {
     addQuantityToDispatch: (id, additionalQty, noteAppend) => {
       const current = get().dispatches.find(d => d.id === id)
       if (!current) return null
-      const updatedQty = (Number(current.quantityDispatched) || 0) + Number(additionalQty)
+      const addedQty = Number(additionalQty) || 0
+      const updatedQty = (Number(current.quantityDispatched) || 0) + addedQty
+
+      const existingHistory = Array.isArray(current.history) && current.history.length > 0
+        ? [...current.history]
+        : [{
+            id: uuidv4(),
+            quantity: Number(current.quantityDispatched) || 0,
+            date: current.date || (current.createdAt ? current.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+            notes: current.notes || 'Initial dispatch',
+            createdAt: current.createdAt || new Date().toISOString()
+          }]
+
+      const newHistoryEntry = {
+        id: uuidv4(),
+        quantity: addedQty,
+        date: new Date().toISOString().slice(0, 10),
+        notes: noteAppend || 'Additional quantity added',
+        createdAt: new Date().toISOString()
+      }
+      existingHistory.push(newHistoryEntry)
+
       const updatedNotes = noteAppend
-        ? (current.notes ? `${current.notes} | (+${additionalQty} on ${new Date().toLocaleDateString('en-GB')}: ${noteAppend})` : `+${additionalQty} on ${new Date().toLocaleDateString('en-GB')}: ${noteAppend}`)
+        ? (current.notes ? `${current.notes} | (+${addedQty}: ${noteAppend})` : `+${addedQty}: ${noteAppend}`)
         : current.notes
+
       const doc = updateDoc('dispatches', id, {
         quantityDispatched: updatedQty,
         notes: updatedNotes,
+        history: existingHistory,
         updatedAt: new Date().toISOString()
       })
       set(s => ({ dispatches: s.dispatches.map(d => d.id === id ? doc : d) }))
