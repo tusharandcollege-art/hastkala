@@ -38,20 +38,11 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
       tridentRelative: fields.tridentRelative || 'No',
       tridentRelativeDetails: fields.tridentRelativeDetails || '',
       phone: fields.phone || '',
-      craftSkill: fields.craftSkill || 'Weaving',
-      photo: fields.photo || ''
+      craftSkill: fields.craftSkill || 'Weaving'
     }
   })
 
   const tridentRelativeValue = watch('tridentRelative')
-  const photoValue = watch('photo')
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const compressed = await compressImage(file, 400, 0.75)
-    setValue('photo', compressed)
-  }
 
   const onSubmit = (data) => {
     onSave({
@@ -68,8 +59,7 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
         tridentRelative: data.tridentRelative,
         tridentRelativeDetails: data.tridentRelativeDetails,
         phone: data.phone,
-        craftSkill: data.craftSkill,
-        photo: data.photo
+        craftSkill: data.craftSkill
       }
     })
   }
@@ -208,26 +198,6 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
           </div>
         </div>
 
-        {/* Row 6: Photo Upload */}
-        <div>
-          <label className="label">Artisan Photo (Optional)</label>
-          <div className="flex items-center gap-4">
-            <input
-              type="file"
-              accept="image/*"
-              className="input py-1.5 flex-1 text-xs"
-              onChange={handlePhotoUpload}
-            />
-            {photoValue && (
-              <img
-                src={photoValue}
-                alt="Preview"
-                className="w-12 h-12 rounded-xl object-cover border border-primary-200 flex-shrink-0"
-              />
-            )}
-          </div>
-        </div>
-
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
           <Button variant="ghost" type="button" onClick={onClose}>Cancel</Button>
@@ -251,13 +221,9 @@ function ArtisanProfileModal({ artisan, village, onClose }) {
       <div className="space-y-4">
         {/* Header Header Card */}
         <div className="flex items-center gap-4 bg-primary-50/70 border border-primary-100 p-4 rounded-2xl">
-          {f.photo ? (
-            <img src={f.photo} alt={name} className="w-16 h-16 rounded-2xl object-cover border-2 border-primary-300 flex-shrink-0" />
-          ) : (
-            <div className="w-16 h-16 rounded-2xl bg-primary-200 flex items-center justify-center text-3xl flex-shrink-0">
-              👩
-            </div>
-          )}
+          <div className="w-16 h-16 rounded-2xl bg-primary-100 border border-primary-200 flex items-center justify-center text-3xl flex-shrink-0 shadow-2xs">
+            👩
+          </div>
           <div className="min-w-0 flex-1">
             <h3 className="font-extrabold text-lg text-gray-900 truncate">{name}</h3>
             <p className="text-xs text-primary-700 font-semibold">{village?.name || 'Village'} Village</p>
@@ -416,13 +382,9 @@ export default function ArtisanDirectory({ filterVillageId }) {
                     {/* Name + Photo */}
                     <Td>
                       <div className="flex items-center gap-2.5">
-                        {f.photo ? (
-                          <img src={f.photo} alt={name} className="w-8 h-8 rounded-full object-cover border border-primary-200 flex-shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm flex-shrink-0">
-                            👩
-                          </div>
-                        )}
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm flex-shrink-0">
+                          👩
+                        </div>
                         <div>
                           <p className="font-bold text-gray-900 text-sm leading-tight">{name}</p>
                           <span className="text-[10px] text-gray-400">Reg: {formatDate(a.createdAt)}</span>
@@ -542,13 +504,9 @@ export default function ArtisanDirectory({ filterVillageId }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    {f.photo ? (
-                      <img src={f.photo} alt={name} className="w-11 h-11 rounded-full object-cover border border-primary-200 flex-shrink-0" />
-                    ) : (
-                      <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-lg flex-shrink-0">
-                        👩
-                      </div>
-                    )}
+                    <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-lg flex-shrink-0">
+                      👩
+                    </div>
                     <div>
                       <h4 className="font-bold text-gray-900 text-base leading-snug">{name}</h4>
                       <p className="text-xs text-primary-700 font-medium mt-0.5">📍 {village?.name || 'Village'}</p>
