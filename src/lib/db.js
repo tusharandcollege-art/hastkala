@@ -1,13 +1,16 @@
 /**
  * Hastkala — Persistence Layer
- * Uses localStorage as primary store.
- * Firebase can be wired in later by setting VITE_USE_FIREBASE=true in .env
+ * Primary store: Firestore (real-time, multi-device)
+ * Cache: localStorage (instant UI, offline fallback)
  *
- * Collections: rawMaterials, villages, artisans, artisanFormSchema,
- *              craftProducts, dispatches, yieldLogs, storeInventory, sales
+ * Strategy:
+ *  - All writes go to localStorage first (synchronous → instant UI update)
+ *  - Then the same write is mirrored to Firestore async (no blocking)
+ *  - On app load, Firestore onSnapshot listeners hydrate Zustand with live data
  */
 
 import { v4 as uuidv4 } from 'uuid'
+import { fsSetDoc, fsDeleteDoc, fsSetCollection } from './firestoreDb'
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
 
@@ -28,7 +31,7 @@ function write(key, value) {
   }
 }
 
-// ─── Generic CRUD ────────────────────────────────────────────────────────────
+// ─── Generic CRUD (localStorage + Firestore mirror) ──────────────────────────
 
 export function getCollection(name) {
   const val = read(name)
@@ -42,10 +45,12 @@ export function getDoc(name, id) {
 
 export function addDoc(name, data) {
   const col = [...getCollection(name)]
-  const doc = { ...data, id: uuidv4(), createdAt: new Date().toISOString() }
-  col.push(doc)
+  const document = { ...data, id: uuidv4(), createdAt: new Date().toISOString() }
+  col.push(document)
   write(name, col)
-  return doc
+  // Mirror to Firestore (async, non-blocking)
+  fsSetDoc(name, document)
+  return document
 }
 
 export function updateDoc(name, id, data) {
@@ -54,6 +59,8 @@ export function updateDoc(name, id, data) {
   if (idx === -1) return null
   col[idx] = { ...col[idx], ...data, updatedAt: new Date().toISOString() }
   write(name, col)
+  // Mirror to Firestore (async, non-blocking)
+  fsSetDoc(name, col[idx])
   return col[idx]
 }
 
@@ -61,10 +68,14 @@ export function deleteDoc(name, id) {
   const col = getCollection(name)
   const filtered = col.filter(d => d && d.id !== id)
   write(name, filtered)
+  // Mirror to Firestore (async, non-blocking)
+  fsDeleteDoc(name, id)
 }
 
 export function setCollection(name, arr) {
   write(name, Array.isArray(arr) ? arr : [])
+  // Mirror to Firestore (async, non-blocking)
+  fsSetCollection(name, Array.isArray(arr) ? arr : [])
 }
 
 // ─── Seed Demo Data ───────────────────────────────────────────────────────────
@@ -88,6 +99,7 @@ export function seedDemoData() {
     { id: uuidv4(), label: 'Photo', fieldKey: 'photo', type: 'photo', required: false, order: 10 },
   ]
   write('artisanFormSchema', schema)
+  fsSetCollection('artisanFormSchema', schema)
 
   // Villages
   const villages = [
@@ -97,6 +109,7 @@ export function seedDemoData() {
     { id: uuidv4(), name: 'Madhopur', district: 'Sitapur', state: 'Uttar Pradesh', contactPerson: 'Sarpanch Sunita Sharma', phone: '9876543213', createdAt: new Date().toISOString() },
   ]
   write('villages', villages)
+  fsSetCollection('villages', villages)
 
   // Raw materials
   const mats = [
@@ -107,6 +120,7 @@ export function seedDemoData() {
     { id: uuidv4(), name: 'Natural Dyes', unit: 'kg', quantity: 40, unitCost: 250, receivedDate: '2026-09-18', notes: 'Indigo, turmeric, madder', createdAt: new Date().toISOString() },
   ]
   write('rawMaterials', mats)
+  fsSetCollection('rawMaterials', mats)
 
   // Craft products
   const crafts = [
@@ -119,6 +133,7 @@ export function seedDemoData() {
     { id: uuidv4(), name: 'Clay Diya Set (12 pcs)', category: 'Pottery', costPrice: 60, sellingPrice: 180, unit: 'set', description: 'Hand-painted clay diyas', createdAt: new Date().toISOString() },
   ]
   write('craftProducts', crafts)
+  fsSetCollection('craftProducts', crafts)
 
   // Artisans
   const artisans = [
@@ -130,6 +145,7 @@ export function seedDemoData() {
     { id: uuidv4(), villageId: villages[3].id, dynamicFields: { firstName: 'Sunita Yadav', fullName: 'Sunita Yadav', age: 36, maritalStatus: 'Married', caste: 'OBC', aadhaarNumber: '6789-0123-4567', education: 'High School (10th Pass)', tridentRelative: 'No', phone: '9866666666', craftSkill: 'Block Printing' }, isActive: true, createdAt: new Date().toISOString() },
   ]
   write('artisans', artisans)
+  fsSetCollection('artisans', artisans)
 
   // Dispatches
   const dispatches = [
@@ -139,8 +155,9 @@ export function seedDemoData() {
     { id: uuidv4(), rawMaterialId: mats[3].id, villageId: villages[3].id, artisanId: null, quantityDispatched: 20, date: '2026-09-20', notes: 'Silk saree weaving', createdAt: new Date().toISOString() },
   ]
   write('dispatches', dispatches)
+  fsSetCollection('dispatches', dispatches)
 
-  // Craft shipments (Inward batches to Craft Catalog)
+  // Craft shipments
   const craftShipments = [
     { id: uuidv4(), craftProductId: crafts[0].id, quantity: 50, costPrice: crafts[0].costPrice, date: '2026-09-20', notes: 'Initial intake batch', createdAt: new Date().toISOString() },
     { id: uuidv4(), craftProductId: crafts[1].id, quantity: 30, costPrice: crafts[1].costPrice, date: '2026-09-22', notes: 'Lucknow cluster batch', createdAt: new Date().toISOString() },
@@ -151,8 +168,9 @@ export function seedDemoData() {
     { id: uuidv4(), craftProductId: crafts[6].id, quantity: 100, costPrice: crafts[6].costPrice, date: '2026-10-01', notes: 'Diwali diya collection', createdAt: new Date().toISOString() },
   ]
   write('craftShipments', craftShipments)
+  fsSetCollection('craftShipments', craftShipments)
 
-  // Store dispatches ("Send to Store" from Craft Catalog)
+  // Store dispatches
   const storeDispatches = [
     { id: uuidv4(), craftProductId: crafts[0].id, quantity: 30, date: '2026-10-02', notes: 'Sent to retail counter for display', createdAt: new Date().toISOString() },
     { id: uuidv4(), craftProductId: crafts[1].id, quantity: 15, date: '2026-10-03', notes: 'Sent to store counter', createdAt: new Date().toISOString() },
@@ -161,6 +179,7 @@ export function seedDemoData() {
     { id: uuidv4(), craftProductId: crafts[6].id, quantity: 60, date: '2026-10-04', notes: 'Festive display stock', createdAt: new Date().toISOString() },
   ]
   write('storeDispatches', storeDispatches)
+  fsSetCollection('storeDispatches', storeDispatches)
 
   // Sales records
   const sales = [
@@ -194,15 +213,14 @@ export function seedDemoData() {
     {
       id: uuidv4(), date: '2026-10-08',
       customerName: 'Anita Verma', paymentMode: 'Cash',
-      items: [
-        { craftProductId: crafts[3].id, name: crafts[3].name, qty: 1, unitPrice: crafts[3].sellingPrice, costPrice: crafts[3].costPrice },
-      ],
+      items: [{ craftProductId: crafts[3].id, name: crafts[3].name, qty: 1, unitPrice: crafts[3].sellingPrice, costPrice: crafts[3].costPrice }],
       totalAmount: crafts[3].sellingPrice,
       profit: crafts[3].sellingPrice - crafts[3].costPrice,
       isUndone: false, createdAt: new Date('2026-10-08T11:00:00').toISOString()
     },
   ]
   write('sales', sales)
+  fsSetCollection('sales', sales)
 
   write('__seeded__', true)
   } catch (err) {

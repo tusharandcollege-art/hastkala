@@ -4,6 +4,7 @@ import {
   getCollection, addDoc, updateDoc, deleteDoc,
   setCollection, seedDemoData
 } from '@/lib/db'
+import { initFirestoreSync } from '@/lib/firestoreDb'
 
 function loadAll() {
   try {
@@ -492,5 +493,12 @@ const useStore = create((set, get) => {
     },
   }
 })
+
+// Initialize Firestore realtime synchronization
+try {
+  initFirestoreSync(useStore, recomputeInventory)
+} catch (err) {
+  console.warn('Firestore sync failed to initialize:', err)
+}
 
 export default useStore
