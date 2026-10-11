@@ -127,10 +127,11 @@ function ReceiveCraftShipmentModal({ product, onClose, onConfirm }) {
 
 // ─── Modal: Send to Store Inventory ──────────────────────────────────────────
 
-function SendToStoreModal({ product, catalogBalance, onClose, onConfirm }) {
+function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfirm }) {
+  const isZeroStock = catalogBalance <= 0
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     defaultValues: {
-      quantity: '',
+      quantity: isZeroStock ? '10' : Math.min(catalogBalance, 10).toString(),
       date: today(),
       notes: ''
     }
@@ -153,27 +154,55 @@ function SendToStoreModal({ product, catalogBalance, onClose, onConfirm }) {
         <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">{product.category || 'Craft'}</span>
-            <Badge variant="warning">Catalog Stock: {catalogBalance} {product.unit || 'pcs'}</Badge>
+            <Badge variant={isZeroStock ? 'danger' : 'warning'}>
+              Catalog Stock: {catalogBalance} {product.unit || 'pcs'}
+            </Badge>
           </div>
           <p className="font-bold text-base text-gray-900">{product.name}</p>
-          <p className="text-xs text-gray-500">
-            This will move items out of Craft Catalog balance directly into <strong>Store POS Inventory</strong> ready for sale.
+          <p className="text-xs text-gray-600">
+            This moves items from Central Craft Catalog into <strong>Store POS Inventory</strong> ready to sell at the cashier counter.
           </p>
         </div>
+
+        {isZeroStock && (
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-xs text-orange-900 space-y-1">
+            <p className="font-bold">Notice: Catalog running balance is currently 0.</p>
+            <p className="text-[11px] text-orange-800">
+              You can still send initial items directly to store below, or click <strong>"+ Receive Batch First"</strong> to record an intake receipt.
+            </p>
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  onReceive(product)
+                }}
+                className="text-xs font-bold text-primary-700 underline hover:text-primary-900"
+              >
+                + Receive Incoming Batch from Artisans
+              </button>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="label">Quantity to Send ({product.unit || 'pcs'}) *</label>
           <input
             type="number"
             min="1"
-            max={catalogBalance}
+            max={isZeroStock ? undefined : catalogBalance}
             className="input"
-            placeholder={`Max ${catalogBalance}`}
+            placeholder={isZeroStock ? 'Enter quantity to send' : `Max ${catalogBalance}`}
             {...register('quantity', {
               required: 'Quantity is required',
               valueAsNumber: true,
               min: { value: 1, message: 'Must be at least 1' },
-              max: { value: catalogBalance, message: `Cannot exceed catalog balance (${catalogBalance})` }
+              validate: (val) => {
+                if (!isZeroStock && val > catalogBalance) {
+                  return `Cannot exceed catalog balance (${catalogBalance})`
+                }
+                return true
+              }
             })}
           />
           {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity.message}</p>}
@@ -199,9 +228,9 @@ function SendToStoreModal({ product, catalogBalance, onClose, onConfirm }) {
           </div>
         </div>
 
-        {qty > 0 && (
+        {qty > 0 && !isZeroStock && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex justify-between items-center">
-            <span>New Catalog Balance:</span>
+            <span>Remaining Catalog Balance:</span>
             <strong className="text-sm">{catalogBalance - qty} {product.unit || 'pcs'}</strong>
           </div>
         )}
@@ -435,6 +464,7 @@ export default function CraftCatalog() {
   const [modal, setModal] = useState(null) // 'add' | { edit: p } | { receive: p } | { send: p } | { history: p }
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
 
   const filtered = craftProducts.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
@@ -444,6 +474,14 @@ export default function CraftCatalog() {
 
   return (
     <div className="space-y-4">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-xs animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <div>
@@ -538,7 +576,7 @@ export default function CraftCatalog() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setModal({ receive: p })}
-                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
                           title="Receive new batch"
                         >
                           <ArrowDownToLine className="w-3.5 h-3.5" />
@@ -547,8 +585,7 @@ export default function CraftCatalog() {
 
                         <button
                           onClick={() => setModal({ send: p })}
-                          disabled={stats.catalogBalance <= 0}
-                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 disabled:opacity-40 disabled:hover:bg-blue-50 text-blue-700 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
                           title="Send to Store Inventory"
                         >
                           <Send className="w-3.5 h-3.5" />
@@ -557,7 +594,7 @@ export default function CraftCatalog() {
 
                         <button
                           onClick={() => setModal({ history: p })}
-                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                           title="Transaction History"
                         >
                           <History className="w-4 h-4" />
@@ -565,7 +602,7 @@ export default function CraftCatalog() {
 
                         <button
                           onClick={() => setModal({ edit: p })}
-                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                           title="Edit definition"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -575,7 +612,7 @@ export default function CraftCatalog() {
                           onClick={() => {
                             if (confirm(`Delete product "${p.name}"?`)) deleteCraftProduct(p.id)
                           }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title="Delete product"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -618,7 +655,9 @@ export default function CraftCatalog() {
           onClose={() => setModal(null)}
           onConfirm={(data) => {
             receiveCraftShipment(data)
+            setToastMessage(`Received +${data.quantity} ${modal.receive.unit || 'pcs'} into Catalog balance!`)
             setModal(null)
+            setTimeout(() => setToastMessage(''), 4000)
           }}
         />
       )}
@@ -628,9 +667,12 @@ export default function CraftCatalog() {
           product={modal.send}
           catalogBalance={getCraftCatalogStats(modal.send.id).catalogBalance}
           onClose={() => setModal(null)}
+          onReceive={(p) => setModal({ receive: p })}
           onConfirm={(data) => {
             sendToStore(data)
+            setToastMessage(`Sent ${data.quantity} ${modal.send.unit || 'pcs'} of "${modal.send.name}" to Store POS Inventory!`)
             setModal(null)
+            setTimeout(() => setToastMessage(''), 4000)
           }}
         />
       )}

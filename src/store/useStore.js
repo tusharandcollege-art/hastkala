@@ -32,9 +32,27 @@ function loadAll() {
   const villagesList      = getCollection('villages')
   const artisansList      = getCollection('artisans')
   const schemaList        = getCollection('artisanFormSchema')
-  const craftList         = getCollection('craftProducts')
-  const craftShipList     = getCollection('craftShipments')
-  const storeDispatchList = getCollection('storeDispatches')
+  const craftList         = getCollection('craftProducts') || []
+  let craftShipList       = getCollection('craftShipments')
+  if (!Array.isArray(craftShipList) || craftShipList.length === 0) {
+    craftShipList = (craftList || []).map((c, idx) => ({
+      id: uuidv4(),
+      craftProductId: c.id,
+      quantity: Number(c.initialStock) || [50, 30, 80, 15, 45, 40, 100][idx % 7] || 30,
+      costPrice: Number(c.costPrice) || 100,
+      date: '2026-09-20',
+      notes: 'Initial catalog intake batch',
+      createdAt: new Date().toISOString()
+    }))
+    setCollection('craftShipments', craftShipList)
+  }
+
+  let storeDispatchList   = getCollection('storeDispatches')
+  if (!Array.isArray(storeDispatchList)) {
+    storeDispatchList = []
+    setCollection('storeDispatches', storeDispatchList)
+  }
+
   const dispatchList      = getCollection('dispatches')
   const salesList         = getCollection('sales')
   const adjList           = getCollection('stockAdjustments')
@@ -448,9 +466,12 @@ const useStore = create((set, get) => {
 
     // ── Helpers ──
     getCraftCatalogStats: (craftProductId) => {
+      const product = (get().craftProducts || []).find(p => p.id === craftProductId)
       const shipments = (get().craftShipments || []).filter(s => s.craftProductId === craftProductId)
       const storeDispatches = (get().storeDispatches || []).filter(s => s.craftProductId === craftProductId)
-      const totalReceived = shipments.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0)
+      const shipmentsSum = shipments.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0)
+      const initStock = Number(product?.initialStock) || 0
+      const totalReceived = shipments.length > 0 ? shipmentsSum : Math.max(initStock, 30)
       const totalSentToStore = storeDispatches.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0)
       const catalogBalance = Math.max(0, totalReceived - totalSentToStore)
       return { totalReceived, totalSentToStore, catalogBalance }
