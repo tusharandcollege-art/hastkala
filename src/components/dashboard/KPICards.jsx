@@ -4,16 +4,16 @@ import { TrendingUp, Users, Package, ShoppingCart, Banknote, MapPin, AlertTriang
 
 function KPICard({ icon: Icon, label, value, sub, color, bg }) {
   return (
-    <div className="kpi-card">
-      <div className="flex items-start justify-between">
-        <div className={`p-2.5 rounded-xl ${bg}`}>
-          <Icon className={`w-5 h-5 ${color}`} />
+    <div className="bg-white rounded-2xl border border-gray-100 p-3.5 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] sm:text-xs font-semibold text-gray-500 line-clamp-1">{label}</span>
+        <div className={`p-2 sm:p-2.5 rounded-xl ${bg} flex-shrink-0`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color}`} />
         </div>
       </div>
       <div>
-        <p className="text-2xl font-black text-gray-900">{value}</p>
-        <p className="text-sm font-medium text-gray-700 mt-0.5">{label}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        <p className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">{value}</p>
+        {sub && <p className="text-[10px] sm:text-xs text-gray-400 mt-1 truncate font-medium">{sub}</p>}
       </div>
     </div>
   )
