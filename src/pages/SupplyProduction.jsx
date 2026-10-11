@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { Package, Truck, BookOpen } from 'lucide-react'
+import { Package, Truck, Warehouse } from 'lucide-react'
 import RawMaterials from '@/components/supply/RawMaterials'
 import DispatchLog from '@/components/supply/DispatchLog'
-import CraftCatalog from '@/components/supply/CraftCatalog'
+import InventoryPage from '@/pages/InventoryPage'
 
 const TABS = [
   { id: 'materials', label: 'Raw Materials', icon: Package },
   { id: 'dispatch',  label: 'Dispatch Log',   icon: Truck },
-  { id: 'catalog',   label: 'Craft Catalog',  icon: BookOpen },
+  { id: 'products',  label: 'Products & Inventory', icon: Warehouse },
 ]
 
 export default function SupplyProduction() {
@@ -30,7 +30,7 @@ export default function SupplyProduction() {
 
       {tab === 'materials' && <RawMaterials />}
       {tab === 'dispatch'  && <DispatchLog />}
-      {tab === 'catalog'   && <CraftCatalog />}
+      {tab === 'products'  && <InventoryPage />}
     </div>
   )
 }

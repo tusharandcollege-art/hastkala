@@ -262,18 +262,39 @@ const useStore = create((set, get) => {
         ...data,
         initialStock: Number(data.initialStock) || 0
       })
-      if (Number(data.initialStock) > 0) {
-        addDoc('craftShipments', {
+      const initStock = Number(data.initialStock) || 0
+      let newDispatches = get().storeDispatches || []
+      let newShipments = get().craftShipments || []
+      if (initStock > 0) {
+        const shipment = addDoc('craftShipments', {
           craftProductId: doc.id,
-          quantity: Number(data.initialStock),
+          quantity: initStock,
           costPrice: Number(data.costPrice) || 0,
           date: new Date().toISOString().slice(0, 10),
           notes: data.description ? `Initial batch: ${data.description}` : 'Initial stock intake',
         })
+        const dispatch = addDoc('storeDispatches', {
+          craftProductId: doc.id,
+          quantity: initStock,
+          date: new Date().toISOString().slice(0, 10),
+          notes: 'Initial stock on hand'
+        })
+        newShipments = [...newShipments, shipment]
+        newDispatches = [...newDispatches, dispatch]
       }
       const newCrafts = [...get().craftProducts, doc]
-      const newShipments = getCollection('craftShipments')
-      set({ craftProducts: newCrafts, craftShipments: newShipments })
+      const newInv = persistInventory(
+        newCrafts,
+        newDispatches,
+        get().sales || [],
+        get().stockAdjustments || []
+      )
+      set({
+        craftProducts: newCrafts,
+        craftShipments: newShipments,
+        storeDispatches: newDispatches,
+        storeInventory: newInv
+      })
       return doc
     },
 
@@ -340,6 +361,26 @@ const useStore = create((set, get) => {
         quantity: qty,
         date: date || new Date().toISOString().slice(0, 10),
         notes: notes || 'Sent to Store Inventory',
+      })
+      const newDispatches = [...(get().storeDispatches || []), dispatch]
+      const newInv = persistInventory(
+        get().craftProducts,
+        newDispatches,
+        get().sales || [],
+        get().stockAdjustments || []
+      )
+      set({ storeDispatches: newDispatches, storeInventory: newInv })
+      return dispatch
+    },
+
+    restockProduct: ({ craftProductId, quantity, costPrice, date, notes }) => {
+      const qty = Number(quantity)
+      const dispatch = addDoc('storeDispatches', {
+        craftProductId,
+        quantity: qty,
+        costPrice: Number(costPrice) || 0,
+        date: date || new Date().toISOString().slice(0, 10),
+        notes: notes || 'Restock batch intake',
       })
       const newDispatches = [...(get().storeDispatches || []), dispatch]
       const newInv = persistInventory(
@@ -419,12 +460,15 @@ const useStore = create((set, get) => {
     },
 
     // ── Manual Stock Adjustments ──
-    adjustStock: ({ craftProductId, quantity, reason }) => {
+    adjustStock: ({ craftProductId, quantity, reason, notes, date, previousStock, newStock }) => {
       const doc = addDoc('stockAdjustments', {
         craftProductId,
         quantity: Number(quantity),
         reason: reason || 'Manual adjustment',
-        date: new Date().toISOString()
+        notes: notes || '',
+        previousStock: previousStock !== undefined ? Number(previousStock) : undefined,
+        newStock: newStock !== undefined ? Number(newStock) : undefined,
+        date: date || new Date().toISOString().slice(0, 10),
       })
       const newAdjustments = [...(get().stockAdjustments || []), doc]
       const newInv = persistInventory(

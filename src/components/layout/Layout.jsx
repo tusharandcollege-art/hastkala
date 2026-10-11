@@ -7,8 +7,8 @@ import { LogOut } from 'lucide-react'
 const PAGE_TITLES = {
   '/':          { title: 'Dashboard', subtitle: 'Overview of your craft supply chain' },
   '/villages':  { title: 'Villages & Artisans', subtitle: 'Manage villages and artisan directory' },
-  '/supply':    { title: 'Supply & Production', subtitle: 'Raw materials, plant dispatches, and craft catalog' },
-  '/inventory': { title: 'Store Inventory', subtitle: 'Manage products sent to store and stock status' },
+  '/supply':    { title: 'Supply & Production', subtitle: 'Raw materials, plant dispatches, and production' },
+  '/inventory': { title: 'Products & Inventory', subtitle: 'Master product catalog, live stock levels, and quick stock audits' },
   '/sales':     { title: 'Store POS Sales', subtitle: 'Point of sale counter — sell products to customers' },
   '/analytics': { title: 'Analytics & Reports', subtitle: 'Charts, insights, and Excel exports' },
 }

@@ -11,7 +11,7 @@ const NAV = [
   { to: '/',            icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/villages',    icon: MapPin,           label: 'Villages & Artisans' },
   { to: '/supply',      icon: Package,          label: 'Supply & Production' },
-  { to: '/inventory',   icon: Warehouse,        label: 'Inventory' },
+  { to: '/inventory',   icon: Warehouse,        label: 'Products & Inventory' },
   { to: '/sales',       icon: ShoppingCart,     label: 'Sales' },
   { to: '/analytics',   icon: BarChart3,        label: 'Analytics & Reports' },
 ]
