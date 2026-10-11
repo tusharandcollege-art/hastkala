@@ -891,9 +891,9 @@ export default function InventoryPage() {
 
                         {/* Delete */}
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm(`Delete product "${item.name}" from inventory?`)) {
-                              deleteCraftProduct(item.id)
+                              await deleteCraftProduct(item.id)
                               showToast(`Deleted product "${item.name}".`)
                             }
                           }}
@@ -1004,9 +1004,9 @@ export default function InventoryPage() {
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (confirm(`Delete product "${item.name}" from inventory?`)) {
-                        deleteCraftProduct(item.id)
+                        await deleteCraftProduct(item.id)
                         showToast(`Deleted product "${item.name}".`)
                       }
                     }}

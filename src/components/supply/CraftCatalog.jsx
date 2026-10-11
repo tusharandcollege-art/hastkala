@@ -664,8 +664,8 @@ export default function CraftCatalog() {
                         </button>
 
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete product "${p.name}"?`)) deleteCraftProduct(p.id)
+                          onClick={async () => {
+                            if (confirm(`Delete product "${p.name}"?`)) await deleteCraftProduct(p.id)
                           }}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title="Delete product"

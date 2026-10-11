@@ -4,7 +4,7 @@ import {
   getCollection, addDoc, updateDoc, deleteDoc,
   setCollection, seedDemoData
 } from '@/lib/db'
-import { initFirestoreSync } from '@/lib/firestoreDb'
+import { initFirestoreSync, fsDeleteDoc } from '@/lib/firestoreDb'
 
 function loadAll() {
   try {
@@ -95,7 +95,9 @@ function recomputeInventory(
 
 function persistInventory(craftProducts, storeDispatches, sales, stockAdjustments) {
   const inv = recomputeInventory(craftProducts, storeDispatches, sales, stockAdjustments)
-  setCollection('storeInventory', inv)
+  try {
+    localStorage.setItem('hastkala_storeInventory', JSON.stringify(inv))
+  } catch (_) {}
   return inv
 }
 
@@ -183,13 +185,29 @@ const useStore = create((set, get) => {
       set(s => ({ rawMaterials: s.rawMaterials.map(m => m.id === id ? doc : m) }))
     },
 
-    deleteRawMaterial: (id) => {
+    deleteRawMaterial: async (id) => {
+      const shipmentsToDelete = (get().materialShipments || []).filter(s => s && s.rawMaterialId === id)
+      const dispatchesToDelete = (get().dispatches || []).filter(d => d && d.rawMaterialId === id)
+
+      await Promise.allSettled([
+        fsDeleteDoc('rawMaterials', id),
+        ...shipmentsToDelete.map(s => fsDeleteDoc('materialShipments', s.id)),
+        ...dispatchesToDelete.map(d => fsDeleteDoc('dispatches', d.id))
+      ])
+
       deleteDoc('rawMaterials', id)
-      const filteredShipments = (get().materialShipments || []).filter(s => s.rawMaterialId !== id)
-      setCollection('materialShipments', filteredShipments)
+      const filteredShipments = (get().materialShipments || []).filter(s => s && s.rawMaterialId !== id)
+      const filteredDispatches = (get().dispatches || []).filter(d => d && d.rawMaterialId !== id)
+
+      try {
+        localStorage.setItem('hastkala_materialShipments', JSON.stringify(filteredShipments))
+        localStorage.setItem('hastkala_dispatches', JSON.stringify(filteredDispatches))
+      } catch (_) {}
+
       set(s => ({
-        rawMaterials: s.rawMaterials.filter(m => m.id !== id),
-        materialShipments: filteredShipments
+        rawMaterials: s.rawMaterials.filter(m => m && m.id !== id),
+        materialShipments: filteredShipments,
+        dispatches: filteredDispatches
       }))
     },
 
@@ -203,9 +221,10 @@ const useStore = create((set, get) => {
       const doc = updateDoc('villages', id, data)
       set(s => ({ villages: s.villages.map(v => v.id === id ? doc : v) }))
     },
-    deleteVillage: (id) => {
+    deleteVillage: async (id) => {
+      await fsDeleteDoc('villages', id)
       deleteDoc('villages', id)
-      set(s => ({ villages: s.villages.filter(v => v.id !== id) }))
+      set(s => ({ villages: s.villages.filter(v => v && v.id !== id) }))
     },
 
     // ── Artisan Form Schema ──
@@ -224,9 +243,10 @@ const useStore = create((set, get) => {
       const doc = updateDoc('artisans', id, data)
       set(s => ({ artisans: s.artisans.map(a => a.id === id ? doc : a) }))
     },
-    deleteArtisan: (id) => {
+    deleteArtisan: async (id) => {
+      await fsDeleteDoc('artisans', id)
       deleteDoc('artisans', id)
-      set(s => ({ artisans: s.artisans.filter(a => a.id !== id) }))
+      set(s => ({ artisans: s.artisans.filter(a => a && a.id !== id) }))
     },
 
     // ── Craft Products & Inward Shipments ──
@@ -286,9 +306,13 @@ const useStore = create((set, get) => {
       return shipment
     },
 
-    deleteCraftShipment: (id) => {
+    deleteCraftShipment: async (id) => {
+      await fsDeleteDoc('craftShipments', id)
       deleteDoc('craftShipments', id)
-      const newShipments = (get().craftShipments || []).filter(s => s.id !== id)
+      const newShipments = (get().craftShipments || []).filter(s => s && s.id !== id)
+      try {
+        localStorage.setItem('hastkala_craftShipments', JSON.stringify(newShipments))
+      } catch (_) {}
       set({ craftShipments: newShipments })
     },
 
@@ -305,23 +329,45 @@ const useStore = create((set, get) => {
       return doc
     },
 
-    deleteCraftProduct: (id) => {
+    deleteCraftProduct: async (id) => {
+      // 1. Cascade delete product and all associated documents from Firestore
+      const shipmentsToDelete = (get().craftShipments || []).filter(s => s && s.craftProductId === id)
+      const dispatchesToDelete = (get().storeDispatches || []).filter(d => d && d.craftProductId === id)
+      const adjsToDelete = (get().stockAdjustments || []).filter(a => a && a.craftProductId === id)
+
+      await Promise.allSettled([
+        fsDeleteDoc('craftProducts', id),
+        fsDeleteDoc('storeInventory', id),
+        ...shipmentsToDelete.map(s => fsDeleteDoc('craftShipments', s.id)),
+        ...dispatchesToDelete.map(d => fsDeleteDoc('storeDispatches', d.id)),
+        ...adjsToDelete.map(a => fsDeleteDoc('stockAdjustments', a.id))
+      ])
+
+      // 2. Synchronously update local persistence and reactive Zustand store
       deleteDoc('craftProducts', id)
-      const newCrafts = get().craftProducts.filter(c => c.id !== id)
-      const newShipments = (get().craftShipments || []).filter(s => s.craftProductId !== id)
-      const newDispatches = (get().storeDispatches || []).filter(s => s.craftProductId !== id)
-      setCollection('craftShipments', newShipments)
-      setCollection('storeDispatches', newDispatches)
+      const newCrafts = (get().craftProducts || []).filter(c => c && c.id !== id)
+      const newShipments = (get().craftShipments || []).filter(s => s && s.craftProductId !== id)
+      const newDispatches = (get().storeDispatches || []).filter(d => d && d.craftProductId !== id)
+      const newAdjs = (get().stockAdjustments || []).filter(a => a && a.craftProductId !== id)
+
+      try {
+        localStorage.setItem('hastkala_craftProducts', JSON.stringify(newCrafts))
+        localStorage.setItem('hastkala_craftShipments', JSON.stringify(newShipments))
+        localStorage.setItem('hastkala_storeDispatches', JSON.stringify(newDispatches))
+        localStorage.setItem('hastkala_stockAdjustments', JSON.stringify(newAdjs))
+      } catch (_) {}
+
       const newInv = persistInventory(
         newCrafts,
         newDispatches,
         get().sales || [],
-        get().stockAdjustments || []
+        newAdjs
       )
       set({
         craftProducts: newCrafts,
         craftShipments: newShipments,
         storeDispatches: newDispatches,
+        stockAdjustments: newAdjs,
         storeInventory: newInv
       })
     },
@@ -427,9 +473,14 @@ const useStore = create((set, get) => {
       set(s => ({ dispatches: s.dispatches.map(d => d.id === id ? doc : d) }))
       return doc
     },
-    deleteDispatch: (id) => {
+    deleteDispatch: async (id) => {
+      await fsDeleteDoc('dispatches', id)
       deleteDoc('dispatches', id)
-      set(s => ({ dispatches: s.dispatches.filter(d => d.id !== id) }))
+      const newDispatches = (get().dispatches || []).filter(d => d && d.id !== id)
+      try {
+        localStorage.setItem('hastkala_dispatches', JSON.stringify(newDispatches))
+      } catch (_) {}
+      set({ dispatches: newDispatches })
     },
 
     // ── Manual Stock Adjustments ──

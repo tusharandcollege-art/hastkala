@@ -68,8 +68,8 @@ export function deleteDoc(name, id) {
   const col = getCollection(name)
   const filtered = col.filter(d => d && d.id !== id)
   write(name, filtered)
-  // Mirror to Firestore (async, non-blocking)
-  fsDeleteDoc(name, id)
+  // Mirror to Firestore
+  return fsDeleteDoc(name, id)
 }
 
 export function setCollection(name, arr) {
