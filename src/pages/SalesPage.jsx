@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import useStore from '@/store/useStore'
-import { formatCurrency, today } from '@/lib/utils'
+import { formatCurrency, today, formatDate, formatDateTime, formatTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Card } from '@/components/ui/Card'
 import {
   ShoppingCart, Plus, Minus, Trash2, CheckCircle2,
-  Banknote, Smartphone, RotateCcw, User, Clock, Search, X
+  Banknote, Smartphone, RotateCcw, User, Clock, Search, X, Calendar
 } from 'lucide-react'
 import { differenceInMinutes, parseISO, isValid } from 'date-fns'
 
@@ -121,8 +121,9 @@ function ProductGrid({ craftProducts, getInventoryQty, onAdd }) {
 
 // ─── Checkout Confirmation Modal ──────────────────────────────────────────────
 
-function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustomerName, paymentMode, setPaymentMode, onClose, onConfirm }) {
+function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustomerName, saleDate, setSaleDate, paymentMode, setPaymentMode, onClose, onConfirm }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const currentTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -138,19 +139,36 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
   return (
     <Modal open={true} onClose={onClose} title="Confirm Sales Transaction" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Customer Details */}
-        <div>
-          <label className="label">Customer Name</label>
-          <div className="relative">
-            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              className="input pl-9"
-              placeholder="Walk-in Customer"
-              value={customerName}
-              onChange={e => setCustomerName(e.target.value)}
-              disabled={isSubmitting}
-            />
+        {/* Customer Details & Date */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">Customer Name</label>
+            <div className="relative">
+              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                className="input pl-9"
+                placeholder="Walk-in Customer"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Sale Date *</label>
+            <div className="relative">
+              <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="date"
+                required
+                className="input pl-9"
+                value={saleDate}
+                onChange={e => setSaleDate(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         </div>
 
@@ -189,14 +207,22 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
         </div>
 
         {/* Order Summary */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2 text-xs">
-          <p className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Order Summary</p>
+        <div className="bg-gray-50 rounded-xl p-3.5 space-y-2 text-xs">
+          <div className="flex items-center justify-between pb-1.5 border-b border-gray-200/80">
+            <p className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">Order Summary</p>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 bg-white px-2 py-0.5 rounded-md border border-gray-200">
+              <Clock className="w-3 h-3 text-primary-500" />
+              <span>{formatDate(saleDate)} • {currentTime}</span>
+            </span>
+          </div>
+
           {cart.map(item => (
             <div key={item.id} className="flex justify-between text-gray-800">
               <span>{item.name} × {item.qty}</span>
               <strong className="font-semibold">{formatCurrency(item.sellingPrice * item.qty)}</strong>
             </div>
           ))}
+
           <div className="pt-2 border-t border-gray-200 flex justify-between text-sm font-bold text-gray-900">
             <span>Total Payable:</span>
             <span className="text-primary-600">{formatCurrency(totalAmount)}</span>
@@ -226,16 +252,20 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
   )
 }
 
-// ─── Today's Sales Strip ──────────────────────────────────────────────────────
+// ─── Sales Register & History ──────────────────────────────────────────────────
 
-function TodaySaleStrip() {
+function SalesRegister() {
   const { sales = [], undoSale } = useStore()
-  const todaySales = (sales || [])
-    .filter(s => s && !s.isUndone && s.date === today())
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  const [filterView, setFilterView] = useState('today') // 'today' | 'all'
 
-  const todayRevenue = todaySales.reduce((s, x) => s + (Number(x.totalAmount) || 0), 0)
-  const todayProfit  = todaySales.reduce((s, x) => s + (Number(x.profit) || 0), 0)
+  const activeSales = (sales || []).filter(s => s && !s.isUndone)
+  const todaySales = activeSales.filter(s => s.date === today())
+
+  const displayedSales = (filterView === 'today' ? todaySales : activeSales)
+    .sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0))
+
+  const totalRev = displayedSales.reduce((s, x) => s + (Number(x.totalAmount) || 0), 0)
+  const totalProf = displayedSales.reduce((s, x) => s + (Number(x.profit) || 0), 0)
 
   const canUndo = (sale) => {
     try {
@@ -249,46 +279,128 @@ function TodaySaleStrip() {
     }
   }
 
-  if (todaySales.length === 0) return null
-
   return (
-    <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-primary-500" />
-          <h3 className="font-bold text-sm text-gray-900">Today's Sales Register ({todaySales.length})</h3>
-        </div>
-        <div className="flex gap-4 text-xs">
-          <span className="text-gray-500">Revenue: <strong className="text-gray-900">{formatCurrency(todayRevenue)}</strong></span>
-          <span className="text-emerald-600">Profit: <strong>{formatCurrency(todayProfit)}</strong></span>
-        </div>
-      </div>
-      <div className="space-y-2 max-h-48 overflow-y-auto">
-        {todaySales.map(sale => (
-          <div key={sale.id} className="flex items-center gap-3 text-xs py-2 border-b border-gray-50 last:border-0">
-            <Badge variant={sale.paymentMode === 'Cash' ? 'cash' : 'upi'} className="flex-shrink-0">
-              {sale.paymentMode === 'Cash' ? '💵' : '📱'} {sale.paymentMode}
-            </Badge>
-            <span className="font-medium text-gray-800 truncate flex-1">{sale.customerName || 'Walk-in Customer'}</span>
-            <span className="text-gray-500 truncate hidden sm:block">
-              {Array.isArray(sale.items)
-                ? sale.items.map(i => `${i.name || 'Item'}×${i.qty || 1}`).join(', ')
-                : '—'}
-            </span>
-            <span className="font-bold text-gray-900 flex-shrink-0">{formatCurrency(sale.totalAmount)}</span>
-            {canUndo(sale) && (
-              <button
-                onClick={() => { if (confirm('Undo this sale? Stock will be returned to Store Inventory.')) undoSale(sale.id) }}
-                className="flex items-center gap-1 text-red-400 hover:text-red-600 flex-shrink-0 font-semibold"
-                title="Undo within 30 minutes"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Undo</span>
-              </button>
-            )}
+    <div className="mt-6 bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 shadow-sm space-y-3">
+      {/* Header with View Toggle & Revenue */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-50 text-primary-600 rounded-xl">
+            <Clock className="w-5 h-5" />
           </div>
-        ))}
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-sm sm:text-base text-gray-900">Sales Register</h3>
+              <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFilterView('today')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    filterView === 'today'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  Today ({todaySales.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterView('all')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    filterView === 'all'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  All History ({activeSales.length})
+                </button>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400">Transactions with date and time stamps</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-xl text-xs">
+          <div>
+            <span className="text-[10px] text-gray-400 block font-medium">Revenue</span>
+            <strong className="text-gray-900 font-bold">{formatCurrency(totalRev)}</strong>
+          </div>
+          <div className="h-6 w-px bg-gray-200" />
+          <div>
+            <span className="text-[10px] text-gray-400 block font-medium">Profit</span>
+            <strong className="text-emerald-600 font-bold">{formatCurrency(totalProf)}</strong>
+          </div>
+        </div>
       </div>
+
+      {/* Sales Rows List */}
+      {displayedSales.length === 0 ? (
+        <div className="py-8 text-center text-gray-400 text-xs">
+          No sales recorded {filterView === 'today' ? 'today yet' : 'in the database'}.
+        </div>
+      ) : (
+        <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 divide-y divide-gray-50">
+          {displayedSales.map(sale => (
+            <div key={sale.id} className="pt-2.5 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Badge variant={sale.paymentMode === 'Cash' ? 'cash' : 'upi'} className="flex-shrink-0 text-[10px]">
+                  {sale.paymentMode === 'Cash' ? '💵 Cash' : '📱 UPI'}
+                </Badge>
+
+                {/* Date and Time Details */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md">
+                    <Calendar className="w-3 h-3 text-gray-400" />
+                    <span>{formatDate(sale.date || sale.createdAt)}</span>
+                  </span>
+                  {sale.createdAt && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded-md">
+                      <Clock className="w-3 h-3 text-primary-400" />
+                      <span>{formatTime(sale.createdAt)}</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-gray-900 truncate">
+                    {sale.customerName || 'Walk-in Customer'}
+                  </p>
+                  <p className="text-[11px] text-gray-400 truncate">
+                    {Array.isArray(sale.items)
+                      ? sale.items.map(i => `${i.name || 'Item'} × ${i.qty || 1}`).join(', ')
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 pt-1 sm:pt-0 border-t sm:border-0 border-gray-50">
+                <div className="text-right">
+                  <span className="font-black text-sm text-gray-900">{formatCurrency(sale.totalAmount)}</span>
+                  {sale.profit !== undefined && (
+                    <span className="block text-[10px] text-emerald-600 font-medium">
+                      +{formatCurrency(sale.profit)} profit
+                    </span>
+                  )}
+                </div>
+
+                {canUndo(sale) && (
+                  <button
+                    onClick={() => {
+                      if (confirm('Undo this sale? Stock will be returned to Store Inventory.')) {
+                        undoSale(sale.id)
+                      }
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                    title="Undo sale within 30 minutes"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Undo</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -307,6 +419,7 @@ export default function SalesPage() {
 
   const [cart, setCart] = useState([])
   const [customerName, setCustomerName] = useState('')
+  const [saleDate, setSaleDate] = useState(() => today())
   const [paymentMode, setPaymentMode] = useState('Cash')
   const [showCheckout, setShowCheckout] = useState(false)
   const [lastSuccess, setLastSuccess] = useState(null)
@@ -360,7 +473,7 @@ export default function SalesPage() {
 
     try {
       addSale({
-        date: today(),
+        date: saleDate || today(),
         customerName: customerName.trim() || 'Walk-in Customer',
         paymentMode,
         items: cart.map(item => ({
@@ -384,6 +497,7 @@ export default function SalesPage() {
       // Guaranteed to reset cart and close modal
       setCart([])
       setCustomerName('')
+      setSaleDate(today())
       setShowCheckout(false)
     }
   }
@@ -527,8 +641,8 @@ export default function SalesPage() {
         </div>
       )}
 
-      {/* Today's Sales History Strip */}
-      <TodaySaleStrip />
+      {/* Sales Register & History with Date & Time */}
+      <SalesRegister />
 
       {/* Checkout Modal */}
       {showCheckout && (
@@ -538,6 +652,8 @@ export default function SalesPage() {
           totalProfit={totalProfit}
           customerName={customerName}
           setCustomerName={setCustomerName}
+          saleDate={saleDate}
+          setSaleDate={setSaleDate}
           paymentMode={paymentMode}
           setPaymentMode={setPaymentMode}
           onClose={() => setShowCheckout(false)}

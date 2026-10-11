@@ -30,6 +30,14 @@ export function formatDateTime(dateStr) {
   } catch { return '—' }
 }
 
+export function formatTime(dateStr) {
+  if (!dateStr) return '—'
+  try {
+    const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr)
+    return isValid(d) ? format(d, 'hh:mm a') : '—'
+  } catch { return '—' }
+}
+
 export function today() {
   return format(new Date(), 'yyyy-MM-dd')
 }

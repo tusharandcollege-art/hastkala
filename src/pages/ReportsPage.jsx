@@ -4,7 +4,7 @@ import useStore from '@/store/useStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { formatDate, formatDateTime, formatCurrency, today } from '@/lib/utils'
+import { formatDate, formatTime, formatDateTime, formatCurrency, today } from '@/lib/utils'
 import {
   FileSpreadsheet, Download, Calendar, Layers, CheckCircle2,
   Package, ShoppingCart, Users, MapPin, Truck, SlidersHorizontal,
@@ -102,7 +102,8 @@ export default function ReportsPage() {
           if (!item) return
           salesRows.push({
             'Receipt ID': s.id?.slice(0, 8),
-            'Date': formatDate(s.date),
+            'Date': formatDate(s.date || s.createdAt),
+            'Time': s.createdAt ? formatTime(s.createdAt) : '—',
             'Customer': s.customerName || 'Walk-in',
             'Payment Mode': s.paymentMode || 'Cash',
             'Item Name': item.name || '',
@@ -220,7 +221,8 @@ export default function ReportsPage() {
           if (!item) return
           salesRows.push({
             'Receipt ID': s.id?.slice(0, 8),
-            'Date': formatDate(s.date),
+            'Date': formatDate(s.date || s.createdAt),
+            'Time': s.createdAt ? formatTime(s.createdAt) : '—',
             'Customer': s.customerName || 'Walk-in',
             'Payment Mode': s.paymentMode || 'Cash',
             'Item Name': item.name || '',
