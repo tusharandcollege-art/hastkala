@@ -445,8 +445,8 @@ export default function ArtisanDirectory({ filterVillageId }) {
                         </button>
 
                         <button
-                          onClick={() => {
-                            if (confirm(`Remove artisan ${name}?`)) deleteArtisan(a.id)
+                          onClick={async () => {
+                            if (confirm(`Remove artisan ${name}?`)) await deleteArtisan(a.id)
                           }}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete Artisan"
@@ -540,8 +540,8 @@ export default function ArtisanDirectory({ filterVillageId }) {
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (confirm(`Remove artisan ${name}?`)) deleteArtisan(a.id)
+                    onClick={async () => {
+                      if (confirm(`Remove artisan ${name}?`)) await deleteArtisan(a.id)
                     }}
                     className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
                     title="Delete Artisan"

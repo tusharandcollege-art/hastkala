@@ -246,7 +246,11 @@ const useStore = create((set, get) => {
     deleteArtisan: async (id) => {
       await fsDeleteDoc('artisans', id)
       deleteDoc('artisans', id)
-      set(s => ({ artisans: s.artisans.filter(a => a && a.id !== id) }))
+      const newArtisans = (get().artisans || []).filter(a => a && a.id !== id)
+      try {
+        localStorage.setItem('hastkala_artisans', JSON.stringify(newArtisans))
+      } catch (_) {}
+      set({ artisans: newArtisans })
     },
 
     // ── Craft Products & Inward Shipments ──
