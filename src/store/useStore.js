@@ -53,22 +53,29 @@ function recomputeInventory(
   const inv = {}
 
   // 1. Initialize for all products
-  craftProducts.forEach(p => {
-    inv[p.id] = 0
+  ;(craftProducts || []).forEach(p => {
+    if (p && p.id) {
+      inv[p.id] = 0
+    }
   })
 
   // 2. Add stock sent to store from Craft Catalog
-  storeDispatches.forEach(d => {
-    inv[d.craftProductId] = (inv[d.craftProductId] || 0) + (Number(d.quantity) || 0)
+  ;(storeDispatches || []).forEach(d => {
+    if (d && d.craftProductId) {
+      inv[d.craftProductId] = (inv[d.craftProductId] || 0) + (Number(d.quantity) || 0)
+    }
   })
 
   // 3. Manual stock adjustments
-  stockAdjustments.forEach(a => {
-    inv[a.craftProductId] = (inv[a.craftProductId] || 0) + (Number(a.quantity) || 0)
+  ;(stockAdjustments || []).forEach(a => {
+    if (a && a.craftProductId) {
+      inv[a.craftProductId] = (inv[a.craftProductId] || 0) + (Number(a.quantity) || 0)
+    }
   })
 
   // 4. Deduct active POS sales
-  (sales || []).filter(s => s && !s.isUndone).forEach(s => {
+  const activeSales = (sales || []).filter(s => s && !s.isUndone)
+  activeSales.forEach(s => {
     if (Array.isArray(s.items)) {
       s.items.forEach(i => {
         if (i && i.craftProductId) {
@@ -450,9 +457,9 @@ const useStore = create((set, get) => {
     // ── Sales ──
     addSale: (data) => {
       const doc = addDoc('sales', data)
-      const newSales = [...get().sales, doc]
+      const newSales = [...(get().sales || []), doc]
       const newInv = persistInventory(
-        get().craftProducts,
+        get().craftProducts || [],
         get().storeDispatches || [],
         newSales,
         get().stockAdjustments || []
@@ -462,9 +469,9 @@ const useStore = create((set, get) => {
     },
     undoSale: (id) => {
       const doc = updateDoc('sales', id, { isUndone: true })
-      const newSales = get().sales.map(s => s.id === id ? doc : s)
+      const newSales = (get().sales || []).map(s => s && s.id === id ? doc : s)
       const newInv = persistInventory(
-        get().craftProducts,
+        get().craftProducts || [],
         get().storeDispatches || [],
         newSales,
         get().stockAdjustments || []

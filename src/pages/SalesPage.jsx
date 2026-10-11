@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Card } from '@/components/ui/Card'
 import {
   ShoppingCart, Plus, Minus, Trash2, CheckCircle2,
-  Banknote, Smartphone, RotateCcw, User, Clock, Search
+  Banknote, Smartphone, RotateCcw, User, Clock, Search, X
 } from 'lucide-react'
 import { differenceInMinutes, parseISO, isValid } from 'date-fns'
 
@@ -122,9 +122,22 @@ function ProductGrid({ craftProducts, getInventoryQty, onAdd }) {
 // ─── Checkout Confirmation Modal ──────────────────────────────────────────────
 
 function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustomerName, paymentMode, setPaymentMode, onClose, onConfirm }) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      await onConfirm()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <Modal open={true} onClose={onClose} title="Confirm Sales Transaction" size="md">
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Customer Details */}
         <div>
           <label className="label">Customer Name</label>
@@ -136,6 +149,7 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
               placeholder="Walk-in Customer"
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -146,8 +160,9 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setPaymentMode('Cash')}
-              className={`p-3.5 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+              className={`p-3.5 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all cursor-pointer ${
                 paymentMode === 'Cash'
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-400/20'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -159,8 +174,9 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
 
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setPaymentMode('UPI')}
-              className={`p-3.5 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+              className={`p-3.5 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all cursor-pointer ${
                 paymentMode === 'UPI'
                   ? 'border-violet-500 bg-violet-50 text-violet-800 ring-2 ring-violet-400/20'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -187,18 +203,25 @@ function CheckoutModal({ cart, totalAmount, totalProfit, customerName, setCustom
           </div>
           <div className="flex justify-between text-[11px] text-emerald-700 font-semibold pt-1">
             <span>Estimated Profit Margin:</span>
-            <span>+{formatCurrency(totalProfit)}</span>
+            <span>{totalProfit >= 0 ? `+${formatCurrency(totalProfit)}` : formatCurrency(totalProfit)}</span>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button className="w-full sm:w-auto" onClick={onConfirm}>
+          <Button variant="ghost" type="button" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
             <CheckCircle2 className="w-4 h-4" />
-            Complete Sale — {formatCurrency(totalAmount)}
+            <span>Complete Sale — {formatCurrency(totalAmount)}</span>
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   )
 }
@@ -330,39 +353,67 @@ export default function SalesPage() {
   const totalProfit = cart.reduce((sum, item) => sum + (item.sellingPrice - (item.costPrice || 0)) * item.qty, 0)
 
   const handleConfirmSale = () => {
-    if (cart.length === 0) return
+    if (cart.length === 0) {
+      setShowCheckout(false)
+      return
+    }
 
-    const saleDoc = addSale({
-      date: today(),
-      customerName: customerName.trim() || 'Walk-in Customer',
-      paymentMode,
-      items: cart.map(item => ({
-        craftProductId: item.id,
-        name: item.name,
-        qty: item.qty,
-        unitPrice: item.sellingPrice,
-        costPrice: item.costPrice || 0
-      })),
-      totalAmount,
-      profit: totalProfit,
-      isUndone: false
-    })
+    try {
+      addSale({
+        date: today(),
+        customerName: customerName.trim() || 'Walk-in Customer',
+        paymentMode,
+        items: cart.map(item => ({
+          craftProductId: item.id,
+          name: item.name,
+          qty: item.qty,
+          unitPrice: item.sellingPrice,
+          costPrice: item.costPrice || 0
+        })),
+        totalAmount,
+        profit: totalProfit,
+        isUndone: false
+      })
 
-    setLastSuccess(`Sale of ${formatCurrency(totalAmount)} completed successfully!`)
-    setCart([])
-    setCustomerName('')
-    setShowCheckout(false)
-
-    setTimeout(() => setLastSuccess(null), 4000)
+      setLastSuccess(`Sale of ${formatCurrency(totalAmount)} completed successfully! Stock updated.`)
+      setTimeout(() => setLastSuccess(null), 5000)
+    } catch (err) {
+      console.error('Error confirming sale:', err)
+      alert('Error recording sale: ' + err.message)
+    } finally {
+      // Guaranteed to reset cart and close modal
+      setCart([])
+      setCustomerName('')
+      setShowCheckout(false)
+    }
   }
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Floating Global Success Toast */}
       {lastSuccess && (
-        <Alert variant="success" className="animate-fade-in">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{lastSuccess}</span>
-        </Alert>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92%] sm:w-full px-2 animate-fade-in pointer-events-auto">
+          <div className="bg-gray-900/95 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-gray-700/80 flex items-start gap-3">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl flex-shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                Sale Completed
+              </span>
+              <p className="text-xs text-gray-200 mt-0.5 font-medium leading-relaxed">
+                {lastSuccess}
+              </p>
+            </div>
+            <button
+              onClick={() => setLastSuccess(null)}
+              className="text-gray-400 hover:text-white p-1 rounded-lg"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
