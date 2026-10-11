@@ -109,49 +109,25 @@ export const SYNC_COLLECTIONS = [
 export function initFirestoreSync(useStoreApi, recomputeInventory) {
   SYNC_COLLECTIONS.forEach(colName => {
     fsSubscribe(colName, (items) => {
-      if (items.length > 0) {
-        // Remote has data -> update localStorage and Zustand store
+      // Remote Firestore snapshot is the source of truth
+      try {
+        localStorage.setItem('hastkala_' + colName, JSON.stringify(items || []))
+      } catch (_) {}
+
+      useStoreApi.setState({ [colName]: items || [] })
+
+      if (['craftProducts', 'storeDispatches', 'sales', 'stockAdjustments'].includes(colName)) {
+        const state = useStoreApi.getState()
+        const inv = recomputeInventory(
+          state.craftProducts,
+          state.storeDispatches,
+          state.sales,
+          state.stockAdjustments
+        )
         try {
-          localStorage.setItem('hastkala_' + colName, JSON.stringify(items))
+          localStorage.setItem('hastkala_storeInventory', JSON.stringify(inv))
         } catch (_) {}
-
-        useStoreApi.setState({ [colName]: items })
-
-        if (['craftProducts', 'storeDispatches', 'sales', 'stockAdjustments'].includes(colName)) {
-          const state = useStoreApi.getState()
-          const inv = recomputeInventory(
-            state.craftProducts,
-            state.storeDispatches,
-            state.sales,
-            state.stockAdjustments
-          )
-          try {
-            localStorage.setItem('hastkala_storeInventory', JSON.stringify(inv))
-          } catch (_) {}
-          useStoreApi.setState({ storeInventory: inv })
-        }
-      } else {
-        // Remote collection is empty
-        const localItems = useStoreApi.getState()[colName]
-        if (Array.isArray(localItems) && localItems.length > 0) {
-          // Local has items that are not yet in remote Firestore (or failed initial sync)
-          // Push them to Firestore instead of deleting them!
-          console.log(`[Firestore] Syncing ${localItems.length} local items to remote ${colName}`)
-          fsSetCollection(colName, localItems)
-        } else {
-          // Both are empty, clean state
-          try {
-            localStorage.setItem('hastkala_' + colName, JSON.stringify([]))
-          } catch (_) {}
-          useStoreApi.setState({ [colName]: [] })
-
-          if (['craftProducts', 'storeDispatches', 'sales', 'stockAdjustments'].includes(colName)) {
-            try {
-              localStorage.setItem('hastkala_storeInventory', JSON.stringify([]))
-            } catch (_) {}
-            useStoreApi.setState({ storeInventory: [] })
-          }
-        }
+        useStoreApi.setState({ storeInventory: inv })
       }
     })
   })
