@@ -108,8 +108,6 @@ export const SYNC_COLLECTIONS = [
 // Initialize bi-directional realtime sync with Zustand store
 export function initFirestoreSync(useStoreApi, recomputeInventory) {
   SYNC_COLLECTIONS.forEach(colName => {
-    let hasLoadedRemote = false
-
     fsSubscribe(colName, (items) => {
       if (items.length > 0) {
         // Remote has data -> update localStorage and Zustand store
@@ -132,15 +130,29 @@ export function initFirestoreSync(useStoreApi, recomputeInventory) {
           } catch (_) {}
           useStoreApi.setState({ storeInventory: inv })
         }
-      } else if (!hasLoadedRemote) {
-        // First snapshot and Firestore collection is empty:
-        // Push initial local cache to Firestore so database is populated!
-        const localData = useStoreApi.getState()[colName]
-        if (Array.isArray(localData) && localData.length > 0) {
-          fsSetCollection(colName, localData)
+      } else {
+        // Remote collection is empty
+        if (colName === 'artisanFormSchema') {
+          // Keep/push artisan form schema so registration form fields exist
+          const localSchema = useStoreApi.getState().artisanFormSchema
+          if (Array.isArray(localSchema) && localSchema.length > 0) {
+            fsSetCollection('artisanFormSchema', localSchema)
+          }
+        } else {
+          // Clear any local cache
+          try {
+            localStorage.setItem('hastkala_' + colName, JSON.stringify([]))
+          } catch (_) {}
+          useStoreApi.setState({ [colName]: [] })
+
+          if (['craftProducts', 'storeDispatches', 'sales', 'stockAdjustments'].includes(colName)) {
+            try {
+              localStorage.setItem('hastkala_storeInventory', JSON.stringify([]))
+            } catch (_) {}
+            useStoreApi.setState({ storeInventory: [] })
+          }
         }
       }
-      hasLoadedRemote = true
     })
   })
 }

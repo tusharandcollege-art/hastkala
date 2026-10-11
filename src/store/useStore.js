@@ -13,52 +13,18 @@ function loadAll() {
     console.warn('seedDemoData ignored:', e)
   }
 
-  let matShipments = getCollection('materialShipments')
-  const rawMaterials = getCollection('rawMaterials') || []
-  if (!Array.isArray(matShipments) || matShipments.length === 0) {
-    matShipments = (rawMaterials || []).map(m => ({
-      id: uuidv4(),
-      rawMaterialId: m?.id || uuidv4(),
-      quantity: Number(m?.quantity) || 0,
-      unitCost: Number(m?.unitCost) || 0,
-      totalCost: (Number(m?.quantity) || 0) * (Number(m?.unitCost) || 0),
-      date: m?.receivedDate || (typeof m?.createdAt === 'string' ? m.createdAt.slice(0, 10) : '2026-09-01'),
-      notes: m?.notes || 'Initial batch intake',
-      createdAt: m?.createdAt || new Date().toISOString()
-    }))
-    setCollection('materialShipments', matShipments)
-  }
-
   const rawMaterialsList  = getCollection('rawMaterials')
+  const matShipments      = getCollection('materialShipments')
   const villagesList      = getCollection('villages')
   const artisansList      = getCollection('artisans')
   const schemaList        = getCollection('artisanFormSchema')
-  const craftList         = getCollection('craftProducts') || []
-  let craftShipList       = getCollection('craftShipments')
-  if (!Array.isArray(craftShipList) || craftShipList.length === 0) {
-    craftShipList = (craftList || []).map((c, idx) => ({
-      id: uuidv4(),
-      craftProductId: c.id,
-      quantity: Number(c.initialStock) || [50, 30, 80, 15, 45, 40, 100][idx % 7] || 30,
-      costPrice: Number(c.costPrice) || 100,
-      date: '2026-09-20',
-      notes: 'Initial catalog intake batch',
-      createdAt: new Date().toISOString()
-    }))
-    setCollection('craftShipments', craftShipList)
-  }
-
-  let storeDispatchList   = getCollection('storeDispatches')
-  if (!Array.isArray(storeDispatchList)) {
-    storeDispatchList = []
-    setCollection('storeDispatches', storeDispatchList)
-  }
-
+  const craftList         = getCollection('craftProducts')
+  const craftShipList     = getCollection('craftShipments')
+  const storeDispatchList = getCollection('storeDispatches')
   const dispatchList      = getCollection('dispatches')
   const salesList         = getCollection('sales')
   const adjList           = getCollection('stockAdjustments')
-
-  const invList = persistInventory(craftList, storeDispatchList, salesList, adjList)
+  const invList           = persistInventory(craftList, storeDispatchList, salesList, adjList)
 
   return {
     rawMaterials:      rawMaterialsList,
