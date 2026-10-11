@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Table, Thead, Th, Tbody, Tr, Td, EmptyRow } from '@/components/ui/Table'
 import { Plus, Pencil, Trash2, Search, Eye, Building2, User } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate, compressImage } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 
 const MARITAL_STATUS_OPTIONS = ['Married', 'Unmarried / Single', 'Widowed', 'Divorced / Separated']
@@ -46,12 +46,11 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
   const tridentRelativeValue = watch('tridentRelative')
   const photoValue = watch('photo')
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => setValue('photo', reader.result)
-    reader.readAsDataURL(file)
+    const compressed = await compressImage(file, 400, 0.75)
+    setValue('photo', compressed)
   }
 
   const onSubmit = (data) => {

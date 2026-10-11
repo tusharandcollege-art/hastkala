@@ -51,3 +51,44 @@ export function getStockStatus(qty) {
 export function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 }
+
+/**
+ * Compress an image file to a small base64 string (max 400x400, ~20-50KB)
+ * to safely fit within Firestore document limits and localStorage
+ */
+export function compressImage(file, maxWidth = 400, quality = 0.75) {
+  return new Promise((resolve) => {
+    if (!file) return resolve('')
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          } else {
+            width = Math.round((width * maxWidth) / height)
+            height = maxWidth
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality)
+        resolve(compressedBase64)
+      }
+      img.onerror = () => resolve('')
+      img.src = e.target.result
+    }
+    reader.onerror = () => resolve('')
+    reader.readAsDataURL(file)
+  })
+}
+

@@ -132,14 +132,14 @@ export function initFirestoreSync(useStoreApi, recomputeInventory) {
         }
       } else {
         // Remote collection is empty
-        if (colName === 'artisanFormSchema') {
-          // Keep/push artisan form schema so registration form fields exist
-          const localSchema = useStoreApi.getState().artisanFormSchema
-          if (Array.isArray(localSchema) && localSchema.length > 0) {
-            fsSetCollection('artisanFormSchema', localSchema)
-          }
+        const localItems = useStoreApi.getState()[colName]
+        if (Array.isArray(localItems) && localItems.length > 0) {
+          // Local has items that are not yet in remote Firestore (or failed initial sync)
+          // Push them to Firestore instead of deleting them!
+          console.log(`[Firestore] Syncing ${localItems.length} local items to remote ${colName}`)
+          fsSetCollection(colName, localItems)
         } else {
-          // Clear any local cache
+          // Both are empty, clean state
           try {
             localStorage.setItem('hastkala_' + colName, JSON.stringify([]))
           } catch (_) {}
