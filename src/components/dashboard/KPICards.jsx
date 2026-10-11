@@ -22,7 +22,8 @@ function KPICard({ icon: Icon, label, value, sub, color, bg }) {
 export default function KPICards() {
   const {
     rawMaterials = [], villages = [], artisans = [],
-    craftProducts = [], storeDispatches = [], sales = [], storeInventory = []
+    craftProducts = [], storeDispatches = [], sales = [], stockAdjustments = [],
+    getInventoryQty
   } = useStore()
 
   const activeSales = (sales || []).filter(s => s && !s.isUndone)
@@ -30,8 +31,10 @@ export default function KPICards() {
   const totalProfit  = activeSales.reduce((s, x) => s + (Number(x.profit) || 0), 0)
   const totalSentToStore = (storeDispatches || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0)
   const rawMatValue  = (rawMaterials || []).reduce((s, m) => s + (Number(m.quantity) || 0) * (Number(m.unitCost) || 0), 0)
-  const lowStock     = (storeInventory || []).filter(i => (Number(i.quantityAvailable) || 0) > 0 && (Number(i.quantityAvailable) || 0) <= 5).length
-  const outStock     = (storeInventory || []).filter(i => (Number(i.quantityAvailable) || 0) <= 0).length
+
+  const productStocks = (craftProducts || []).map(p => getInventoryQty(p.id))
+  const lowStock     = productStocks.filter(qty => qty > 0 && qty <= 5).length
+  const outStock     = productStocks.filter(qty => qty <= 0).length
 
   const cards = [
     { icon: Banknote,      label: 'Total Sales Revenue',     value: formatCurrency(totalRevenue), sub: `${activeSales.length} transactions`,  color: 'text-primary-600', bg: 'bg-primary-50' },

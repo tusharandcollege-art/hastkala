@@ -58,10 +58,7 @@ function loadAll() {
   const salesList         = getCollection('sales')
   const adjList           = getCollection('stockAdjustments')
 
-  let invList = getCollection('storeInventory')
-  if (!Array.isArray(invList) || invList.length === 0) {
-    invList = persistInventory(craftList, storeDispatchList, salesList, adjList)
-  }
+  const invList = persistInventory(craftList, storeDispatchList, salesList, adjList)
 
   return {
     rawMaterials:      rawMaterialsList,
@@ -479,8 +476,21 @@ const useStore = create((set, get) => {
     },
 
     getInventoryQty: (craftProductId) => {
-      const inv = (get().storeInventory || []).find(i => i.craftProductId === craftProductId)
-      return inv ? inv.quantityAvailable : 0
+      const dispatches = (get().storeDispatches || []).filter(d => d.craftProductId === craftProductId)
+      const adjustments = (get().stockAdjustments || []).filter(a => a.craftProductId === craftProductId)
+      const activeSales = (get().sales || []).filter(s => s && !s.isUndone)
+
+      const totalSent = dispatches.reduce((sum, d) => sum + (Number(d.quantity) || 0), 0)
+      const totalAdj = adjustments.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0)
+      const totalSold = activeSales.reduce((sum, s) => {
+        if (!Array.isArray(s.items)) return sum
+        const itemSold = s.items
+          .filter(i => i && i.craftProductId === craftProductId)
+          .reduce((iSum, i) => iSum + (Number(i.qty) || 0), 0)
+        return sum + itemSold
+      }, 0)
+
+      return Math.max(0, totalSent + totalAdj - totalSold)
     },
 
     getRawMaterialBalance: (materialId) => {

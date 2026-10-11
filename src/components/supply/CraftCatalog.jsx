@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useStore from '@/store/useStore'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -7,7 +8,7 @@ import { Card } from '@/components/ui/Card'
 import { Table, Thead, Th, Tbody, Tr, Td, EmptyRow } from '@/components/ui/Table'
 import {
   Plus, Pencil, Trash2, Tag, ArrowDownToLine, History,
-  Send, CheckCircle2, Search, Filter, Package
+  Send, CheckCircle2, Search, Filter, Package, ArrowRight, X
 } from 'lucide-react'
 import { formatCurrency, formatDate, today } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
@@ -477,6 +478,7 @@ function computeCatalogStats(craftProductId, craftShipments, storeDispatches, cr
 }
 
 export default function CraftCatalog() {
+  const navigate = useNavigate()
   const {
     craftProducts = [],
     craftShipments = [],
@@ -485,7 +487,7 @@ export default function CraftCatalog() {
     receiveCraftShipment, sendToStore,
   } = useStore()
 
-  const [modal, setModal] = useState(null) // 'add' | { edit: p } | { receive: p } | { send: p } | { history: p }
+  const [modal, setModal] = useState(null) // 'add' | { edit: p } | { receive: p } | { send: p } | { history: p } | { success: ... }
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [toastMessage, setToastMessage] = useState('')
@@ -498,11 +500,40 @@ export default function CraftCatalog() {
 
   return (
     <div className="space-y-4">
-      {/* Toast Alert */}
+      {/* Floating Global Success Toast Notification */}
       {toastMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-xs animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <span>{toastMessage}</span>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92%] sm:w-full px-2 animate-fade-in pointer-events-auto">
+          <div className="bg-gray-900/95 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-gray-700/80 flex items-start gap-3">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl flex-shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  Success
+                </span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full">
+                  Stock Fulfilled
+                </span>
+              </div>
+              <p className="text-xs text-gray-200 mt-1 font-medium leading-relaxed">
+                {toastMessage}
+              </p>
+              <button
+                onClick={() => navigate('/inventory')}
+                className="mt-2 text-xs font-semibold text-amber-400 hover:text-amber-300 underline cursor-pointer inline-flex items-center gap-1"
+              >
+                Go to Store Inventory to view fulfilled stock <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <button
+              onClick={() => setToastMessage('')}
+              className="text-gray-400 hover:text-white p-1 rounded-lg"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -694,11 +725,48 @@ export default function CraftCatalog() {
           onReceive={(p) => setModal({ receive: p })}
           onConfirm={(data) => {
             sendToStore(data)
-            setToastMessage(`Sent ${data.quantity} ${modal.send.unit || 'pcs'} of "${modal.send.name}" to Store POS Inventory!`)
-            setModal(null)
-            setTimeout(() => setToastMessage(''), 4000)
+            const unit = modal.send.unit || 'pcs'
+            const msg = `Sent +${data.quantity} ${unit} of "${modal.send.name}" to Store POS Inventory!`
+            setToastMessage(msg)
+            setModal({
+              success: {
+                title: 'Transferred to Store Inventory!',
+                message: `Successfully transferred +${data.quantity} ${unit} of "${modal.send.name}" to Store POS Inventory.`,
+                productName: modal.send.name,
+                qty: data.quantity,
+                unit
+              }
+            })
+            setTimeout(() => setToastMessage(''), 8000)
           }}
         />
+      )}
+
+      {modal?.success && (
+        <Modal open={true} onClose={() => setModal(null)} title="Transfer Confirmed!" size="sm">
+          <div className="text-center py-4 space-y-4">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">{modal.success.title}</h3>
+              <p className="text-xs text-gray-600 mt-1 max-w-xs mx-auto">
+                {modal.success.message}
+              </p>
+              <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800 font-semibold inline-block">
+                ✓ Available Stock in Store POS Inventory updated!
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-center gap-2 pt-2 border-t border-gray-100">
+              <Button variant="ghost" type="button" onClick={() => setModal(null)}>
+                Done / Back to Catalog
+              </Button>
+              <Button variant="primary" type="button" onClick={() => { setModal(null); navigate('/inventory'); }}>
+                Go to Store Inventory <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {modal?.history && (

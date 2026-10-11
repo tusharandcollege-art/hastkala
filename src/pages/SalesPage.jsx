@@ -271,7 +271,14 @@ function TodaySaleStrip() {
 // ─── Main Sales Counter Page ──────────────────────────────────────────────────
 
 export default function SalesPage() {
-  const { craftProducts = [], getInventoryQty, addSale } = useStore()
+  const {
+    craftProducts = [],
+    storeDispatches = [],
+    sales = [],
+    stockAdjustments = [],
+    getInventoryQty,
+    addSale
+  } = useStore()
 
   const [cart, setCart] = useState([])
   const [customerName, setCustomerName] = useState('')

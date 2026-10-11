@@ -7,7 +7,12 @@ import { formatCurrency, getStockStatus } from '@/lib/utils'
 import { Package, Search, Warehouse, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 export default function InventoryPage() {
-  const { craftProducts = [], storeInventory = [], getInventoryQty } = useStore()
+  const {
+    craftProducts = [],
+    storeDispatches = [],
+    sales = [],
+    stockAdjustments = []
+  } = useStore()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -15,7 +20,21 @@ export default function InventoryPage() {
   const categories = [...new Set(craftProducts.map(p => p.category).filter(Boolean))]
 
   const inventoryItems = craftProducts.map(p => {
-    const qty = getInventoryQty(p.id)
+    const dispatches = (storeDispatches || []).filter(d => d.craftProductId === p.id)
+    const adjustments = (stockAdjustments || []).filter(a => a.craftProductId === p.id)
+    const activeSales = (sales || []).filter(s => s && !s.isUndone)
+
+    const totalSent = dispatches.reduce((sum, d) => sum + (Number(d.quantity) || 0), 0)
+    const totalAdj = adjustments.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0)
+    const totalSold = activeSales.reduce((sum, s) => {
+      if (!Array.isArray(s.items)) return sum
+      const itemSold = s.items
+        .filter(i => i && i.craftProductId === p.id)
+        .reduce((iSum, i) => iSum + (Number(i.qty) || 0), 0)
+      return sum + itemSold
+    }, 0)
+
+    const qty = Math.max(0, totalSent + totalAdj - totalSold)
     const status = getStockStatus(qty)
     const totalCostValue = qty * (Number(p.costPrice) || 0)
     const totalRetailValue = qty * (Number(p.sellingPrice) || 0)
