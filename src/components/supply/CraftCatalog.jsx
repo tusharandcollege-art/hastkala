@@ -259,8 +259,8 @@ function SendToStoreModal({ product, catalogBalance, onReceive, onClose, onConfi
 // ─── Modal: History / Passbook Ledger ─────────────────────────────────────────
 
 function ProductHistoryModal({ product, onClose }) {
-  const { craftShipments = [], storeDispatches = [], deleteCraftShipment, getCraftCatalogStats } = useStore()
-  const stats = getCraftCatalogStats(product.id)
+  const { craftShipments = [], storeDispatches = [], craftProducts = [], deleteCraftShipment } = useStore()
+  const stats = computeCatalogStats(product.id, craftShipments, storeDispatches, craftProducts)
 
   const productShipments = craftShipments.filter(s => s.craftProductId === product.id)
   const productStoreDispatches = storeDispatches.filter(s => s.craftProductId === product.id)
@@ -463,11 +463,26 @@ function ProductModal({ product, onClose, onSave }) {
 
 // ─── Main Craft Catalog Component ─────────────────────────────────────────────
 
+// Helper to compute catalog stats directly from reactive arrays
+function computeCatalogStats(craftProductId, craftShipments, storeDispatches, craftProducts) {
+  const product = (craftProducts || []).find(p => p.id === craftProductId)
+  const shipments = (craftShipments || []).filter(s => s.craftProductId === craftProductId)
+  const dispatches = (storeDispatches || []).filter(s => s.craftProductId === craftProductId)
+  const shipmentsSum = shipments.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0)
+  const initStock = Number(product?.initialStock) || 0
+  const totalReceived = shipments.length > 0 ? shipmentsSum : Math.max(initStock, 30)
+  const totalSentToStore = dispatches.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0)
+  const catalogBalance = Math.max(0, totalReceived - totalSentToStore)
+  return { totalReceived, totalSentToStore, catalogBalance }
+}
+
 export default function CraftCatalog() {
   const {
     craftProducts = [],
+    craftShipments = [],
+    storeDispatches = [],
     addCraftProduct, updateCraftProduct, deleteCraftProduct,
-    receiveCraftShipment, sendToStore, getCraftCatalogStats
+    receiveCraftShipment, sendToStore,
   } = useStore()
 
   const [modal, setModal] = useState(null) // 'add' | { edit: p } | { receive: p } | { send: p } | { history: p }
@@ -544,7 +559,7 @@ export default function CraftCatalog() {
               <EmptyRow colSpan={7} message="No craft products found in catalog." />
             ) : (
               filtered.map(p => {
-                const stats = getCraftCatalogStats(p.id)
+                const stats = computeCatalogStats(p.id, craftShipments, storeDispatches, craftProducts)
                 return (
                   <Tr key={p.id}>
                     <Td>
@@ -674,7 +689,7 @@ export default function CraftCatalog() {
       {modal?.send && (
         <SendToStoreModal
           product={modal.send}
-          catalogBalance={getCraftCatalogStats(modal.send.id).catalogBalance}
+          catalogBalance={computeCatalogStats(modal.send.id, craftShipments, storeDispatches, craftProducts).catalogBalance}
           onClose={() => setModal(null)}
           onReceive={(p) => setModal({ receive: p })}
           onConfirm={(data) => {
