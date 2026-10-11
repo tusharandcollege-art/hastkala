@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar, MobileNav } from './Sidebar'
+import MobileBottomNav from './MobileBottomNav'
 import { useAuth } from '@/context/AuthContext'
 import { LogOut } from 'lucide-react'
 
@@ -10,7 +11,8 @@ const PAGE_TITLES = {
   '/supply':    { title: 'Supply & Production', subtitle: 'Raw materials, plant dispatches, and production' },
   '/inventory': { title: 'Products & Inventory', subtitle: 'Master product catalog, live stock levels, and quick stock audits' },
   '/sales':     { title: 'Store POS Sales', subtitle: 'Point of sale counter — sell products to customers' },
-  '/analytics': { title: 'Analytics & Reports', subtitle: 'Charts, insights, and Excel exports' },
+  '/analytics': { title: 'Analytics & Insights', subtitle: 'Charts, trends, and supply chain insights' },
+  '/reports':   { title: 'Excel Export & Reports', subtitle: 'Export modular spreadsheets and master database backup' },
 }
 
 export default function Layout() {
@@ -53,9 +55,12 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
           <Outlet />
         </main>
+
+        {/* Mobile App Bottom Dock */}
+        <MobileBottomNav />
       </div>
     </div>
   )

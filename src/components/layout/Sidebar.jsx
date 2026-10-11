@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, MapPin, Package, Warehouse, ShoppingCart,
-  BarChart3, ChevronLeft, ChevronRight, Menu, X, LogOut, User
+  BarChart3, ChevronLeft, ChevronRight, Menu, X, LogOut, User, FileSpreadsheet
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -14,6 +14,7 @@ const NAV = [
   { to: '/inventory',   icon: Warehouse,        label: 'Products & Inventory' },
   { to: '/sales',       icon: ShoppingCart,     label: 'Sales' },
   { to: '/analytics',   icon: BarChart3,        label: 'Analytics & Reports' },
+  { to: '/reports',     icon: FileSpreadsheet,  label: 'Reports & Export' },
 ]
 
 export function Sidebar({ collapsed, onCollapse }) {

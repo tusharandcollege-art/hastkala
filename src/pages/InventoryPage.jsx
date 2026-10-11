@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useStore from '@/store/useStore'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -10,7 +11,7 @@ import { useForm } from 'react-hook-form'
 import {
   Package, Search, Warehouse, AlertTriangle, CheckCircle2,
   Plus, Pencil, Trash2, History, ArrowDownToLine, SlidersHorizontal,
-  X, Check, AlertCircle, ShoppingBag
+  X, Check, AlertCircle, ShoppingBag, FileSpreadsheet
 } from 'lucide-react'
 
 const CATEGORIES = [
@@ -604,6 +605,7 @@ function ProductHistoryModal({ product, onClose }) {
 // ─── Main Products & Inventory Hub Component ──────────────────────────────────
 
 export default function InventoryPage() {
+  const navigate = useNavigate()
   const {
     craftProducts = [],
     storeDispatches = [],
@@ -709,10 +711,18 @@ export default function InventoryPage() {
             Catalog products, live available stock, restocks, and manual stock audits with typo correction
           </p>
         </div>
-        <Button onClick={() => setModal('add')}>
-          <Plus className="w-4 h-4" />
-          Add Craft Product
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => navigate('/reports')}>
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span className="hidden sm:inline">Export to Excel</span>
+            <span className="sm:inline hidden text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full ml-1">Reports</span>
+            <span className="sm:hidden">Export</span>
+          </Button>
+          <Button onClick={() => setModal('add')}>
+            <Plus className="w-4 h-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Top Banner KPI summary */}
@@ -792,113 +802,225 @@ export default function InventoryPage() {
         </select>
       </div>
 
-      {/* Master Inventory Table */}
-      <Card>
-        <Table>
-          <Thead>
-            <Tr>
-              <Th>Product & Category</Th>
-              <Th>Unit</Th>
-              <Th className="text-right">Cost Price</Th>
-              <Th className="text-right">Selling Price</Th>
-              <Th className="text-right">Available Stock</Th>
-              <Th>Status</Th>
-              <Th className="text-right">Retail Value</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {filtered.length === 0 ? (
-              <EmptyRow colSpan={8} message="No craft products found in inventory." />
-            ) : (
-              filtered.map(item => (
-                <Tr key={item.id}>
-                  <Td>
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm">{item.name}</p>
-                      <span className="text-[10px] text-primary-700 bg-primary-50 font-medium px-2 py-0.5 rounded-full inline-block mt-0.5">
-                        {item.category}
+      {/* Desktop Master Inventory Table */}
+      <div className="hidden md:block">
+        <Card>
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>Product & Category</Th>
+                <Th>Unit</Th>
+                <Th className="text-right">Cost Price</Th>
+                <Th className="text-right">Selling Price</Th>
+                <Th className="text-right">Available Stock</Th>
+                <Th>Status</Th>
+                <Th className="text-right">Retail Value</Th>
+                <Th className="text-right">Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {filtered.length === 0 ? (
+                <EmptyRow colSpan={8} message="No craft products found in inventory." />
+              ) : (
+                filtered.map(item => (
+                  <Tr key={item.id}>
+                    <Td>
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">{item.name}</p>
+                        <span className="text-[10px] text-primary-700 bg-primary-50 font-medium px-2 py-0.5 rounded-full inline-block mt-0.5">
+                          {item.category}
+                        </span>
+                      </div>
+                    </Td>
+                    <Td><Badge variant="secondary">{item.unit || 'pcs'}</Badge></Td>
+                    <Td className="text-right text-xs text-gray-600 font-medium">{formatCurrency(item.costPrice)}</Td>
+                    <Td className="text-right text-xs text-primary-700 font-bold">{formatCurrency(item.sellingPrice)}</Td>
+                    <Td className="text-right">
+                      <span className={`font-black text-base ${item.quantityAvailable > 0 ? 'text-gray-900' : 'text-red-500'}`}>
+                        {item.quantityAvailable} {item.unit || 'pcs'}
                       </span>
-                    </div>
-                  </Td>
-                  <Td><Badge variant="secondary">{item.unit || 'pcs'}</Badge></Td>
-                  <Td className="text-right text-xs text-gray-600 font-medium">{formatCurrency(item.costPrice)}</Td>
-                  <Td className="text-right text-xs text-primary-700 font-bold">{formatCurrency(item.sellingPrice)}</Td>
-                  <Td className="text-right">
-                    <span className={`font-black text-base ${item.quantityAvailable > 0 ? 'text-gray-900' : 'text-red-500'}`}>
-                      {item.quantityAvailable} {item.unit || 'pcs'}
+                    </Td>
+                    <Td>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${item.status.color}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.status.dot}`} />
+                        {item.status.label}
+                      </span>
+                    </Td>
+                    <Td className="text-right font-bold text-gray-900 text-sm">
+                      {formatCurrency(item.totalRetailValue)}
+                    </Td>
+                    <Td className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Restock Button */}
+                        <button
+                          onClick={() => setModal({ restock: item })}
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                          title="Restock incoming batch"
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5" />
+                          <span>+ Restock</span>
+                        </button>
+
+                        {/* Adjust Stock Button (Audit / Set Exact Count) */}
+                        <button
+                          onClick={() => setModal({ adjust: item })}
+                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                          title="Set exact count or adjust stock"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                          <span>Adjust</span>
+                        </button>
+
+                        {/* History / Ledger */}
+                        <button
+                          onClick={() => setModal({ history: item })}
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                          title="Stock Ledger & History"
+                        >
+                          <History className="w-4 h-4" />
+                        </button>
+
+                        {/* Edit Definition */}
+                        <button
+                          onClick={() => setModal({ edit: item })}
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                          title="Edit product details"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete product "${item.name}" from inventory?`)) {
+                              deleteCraftProduct(item.id)
+                              showToast(`Deleted product "${item.name}".`)
+                            }
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete product"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        </Card>
+      </div>
+
+      {/* Mobile App Touch Cards View */}
+      <div className="block md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500 text-sm shadow-xs">
+            <Package className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+            No craft products found in inventory.
+          </div>
+        ) : (
+          filtered.map(item => (
+            <div
+              key={item.id}
+              className="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs space-y-3 hover:border-gray-200 transition-colors"
+            >
+              {/* Product Header */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 text-base leading-snug truncate">
+                    {item.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-primary-700 bg-primary-50 font-medium px-2 py-0.5 rounded-full inline-block">
+                      {item.category}
                     </span>
-                  </Td>
-                  <Td>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${item.status.color}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${item.status.dot}`} />
-                      {item.status.label}
+                    <span className="text-[10px] text-gray-400">
+                      Unit: {item.unit || 'pcs'}
                     </span>
-                  </Td>
-                  <Td className="text-right font-bold text-gray-900 text-sm">
+                  </div>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${item.status.color}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${item.status.dot}`} />
+                  {item.status.label}
+                </span>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-3 gap-2 bg-gray-50/80 p-3 rounded-xl border border-gray-100 text-center">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Stock</p>
+                  <p className={`font-black text-base mt-0.5 ${item.quantityAvailable > 0 ? 'text-gray-900' : 'text-red-500'}`}>
+                    {item.quantityAvailable}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Price</p>
+                  <p className="font-bold text-xs sm:text-sm text-primary-700 mt-1">
+                    {formatCurrency(item.sellingPrice)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Valuation</p>
+                  <p className="font-bold text-xs sm:text-sm text-gray-900 mt-1 truncate">
                     {formatCurrency(item.totalRetailValue)}
-                  </Td>
-                  <Td className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {/* Restock Button */}
-                      <button
-                        onClick={() => setModal({ restock: item })}
-                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                        title="Restock incoming batch"
-                      >
-                        <ArrowDownToLine className="w-3.5 h-3.5" />
-                        <span>+ Restock</span>
-                      </button>
+                  </p>
+                </div>
+              </div>
 
-                      {/* Adjust Stock Button (Audit / Set Exact Count) */}
-                      <button
-                        onClick={() => setModal({ adjust: item })}
-                        className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold rounded-lg text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                        title="Set exact count or adjust stock"
-                      >
-                        <SlidersHorizontal className="w-3.5 h-3.5" />
-                        <span>Adjust</span>
-                      </button>
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100/80">
+                <div className="flex items-center gap-2 flex-1">
+                  <button
+                    onClick={() => setModal({ restock: item })}
+                    className="flex-1 py-2 px-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all shadow-2xs"
+                  >
+                    <ArrowDownToLine className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Restock</span>
+                  </button>
 
-                      {/* History / Ledger */}
-                      <button
-                        onClick={() => setModal({ history: item })}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                        title="Stock Ledger & History"
-                      >
-                        <History className="w-4 h-4" />
-                      </button>
+                  <button
+                    onClick={() => setModal({ adjust: item })}
+                    className="flex-1 py-2 px-2.5 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all shadow-2xs"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Adjust</span>
+                  </button>
+                </div>
 
-                      {/* Edit Definition */}
-                      <button
-                        onClick={() => setModal({ edit: item })}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                        title="Edit product details"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete product "${item.name}" from inventory?`)) {
-                            deleteCraftProduct(item.id)
-                            showToast(`Deleted product "${item.name}".`)
-                          }
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete product"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </Td>
-                </Tr>
-              ))
-            )}
-          </Tbody>
-        </Table>
-      </Card>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setModal({ history: item })}
+                    className="p-2 text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                    title="Stock Ledger & History"
+                  >
+                    <History className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setModal({ edit: item })}
+                    className="p-2 text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                    title="Edit Product Details"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Delete product "${item.name}" from inventory?`)) {
+                        deleteCraftProduct(item.id)
+                        showToast(`Deleted product "${item.name}".`)
+                      }
+                    }}
+                    className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                    title="Delete Product"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Modals */}
       {modal === 'add' && (

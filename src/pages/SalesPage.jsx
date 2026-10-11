@@ -52,7 +52,7 @@ function ProductGrid({ craftProducts, getInventoryQty, onAdd }) {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
         {filtered.map(product => {
           const availQty = getInventoryQty(product.id)
           const isOutOfStock = availQty <= 0
@@ -61,37 +61,39 @@ function ProductGrid({ craftProducts, getInventoryQty, onAdd }) {
             <div
               key={product.id}
               onClick={() => !isOutOfStock && onAdd(product)}
-              className={`pos-product-card group relative p-4 rounded-2xl border bg-white transition-all select-none ${
+              className={`pos-product-card group relative p-3 sm:p-4 rounded-2xl border bg-white transition-all select-none flex flex-col justify-between ${
                 isOutOfStock
                   ? 'opacity-50 cursor-not-allowed border-gray-100'
                   : 'cursor-pointer hover:border-primary-400 hover:shadow-md border-gray-100'
               }`}
             >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full">
-                  {product.category || 'Craft'}
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    isOutOfStock
-                      ? 'bg-red-100 text-red-700'
-                      : availQty <= 5
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-emerald-100 text-emerald-700'
-                  }`}
-                >
-                  {isOutOfStock ? 'Out of Stock' : `${availQty} in stock`}
-                </span>
+              <div>
+                <div className="flex items-start justify-between gap-1 mb-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-primary-700 bg-primary-50 px-1.5 sm:px-2 py-0.5 rounded-full truncate max-w-[80px] sm:max-w-none">
+                    {product.category || 'Craft'}
+                  </span>
+                  <span
+                    className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      isOutOfStock
+                        ? 'bg-red-100 text-red-700'
+                        : availQty <= 5
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}
+                  >
+                    {isOutOfStock ? 'Out' : `${availQty} left`}
+                  </span>
+                </div>
+
+                <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-1 group-hover:text-primary-600 transition-colors line-clamp-2 sm:line-clamp-1">
+                  {product.name}
+                </h4>
               </div>
 
-              <h4 className="font-bold text-gray-900 text-sm mb-1 group-hover:text-primary-600 transition-colors line-clamp-1">
-                {product.name}
-              </h4>
-
-              <div className="flex items-baseline justify-between mt-3 pt-2 border-t border-gray-50">
+              <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-gray-50">
                 <div>
-                  <span className="text-[10px] text-gray-400 block">Price</span>
-                  <span className="text-base font-extrabold text-gray-900">
+                  <span className="text-[9px] sm:text-[10px] text-gray-400 block">Price</span>
+                  <span className="text-sm sm:text-base font-extrabold text-gray-900">
                     {formatCurrency(product.sellingPrice)}
                   </span>
                 </div>
@@ -103,10 +105,10 @@ function ProductGrid({ craftProducts, getInventoryQty, onAdd }) {
                     e.stopPropagation()
                     if (!isOutOfStock) onAdd(product)
                   }}
-                  className="rounded-xl"
+                  className="rounded-xl px-2 sm:px-3 text-xs"
                 >
-                  <Plus className="w-4 h-4" />
-                  Add
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Add</span>
                 </Button>
               </div>
             </div>
@@ -457,6 +459,22 @@ export default function SalesPage() {
           </Card>
         </div>
       </div>
+
+      {/* Mobile Floating Quick Checkout Bar */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-16 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 z-30 md:hidden flex items-center justify-between shadow-2xl px-4 animate-fade-in">
+          <div>
+            <p className="text-[11px] text-gray-500 font-medium">
+              Cart ({cart.reduce((s, i) => s + i.qty, 0)} {cart.reduce((s, i) => s + i.qty, 0) === 1 ? 'item' : 'items'})
+            </p>
+            <p className="text-base font-black text-gray-900">{formatCurrency(totalAmount)}</p>
+          </div>
+          <Button size="md" onClick={() => setShowCheckout(true)} className="shadow-md rounded-xl">
+            <span>Checkout</span>
+            <CheckCircle2 className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
 
       {/* Today's Sales History Strip */}
       <TodaySaleStrip />

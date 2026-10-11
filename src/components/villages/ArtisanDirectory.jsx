@@ -386,139 +386,237 @@ export default function ArtisanDirectory({ filterVillageId }) {
         </select>
       </div>
 
-      {/* Artisans Table */}
-      <Table padding="compact">
-        <Thead>
-          <tr>
-            <Th>Artisan Name</Th>
-            <Th>Village</Th>
-            <Th>Age & Status</Th>
-            <Th>Caste</Th>
-            <Th>Education</Th>
-            <Th>Trident Relative?</Th>
-            <Th>Skill</Th>
-            <Th>Phone / Aadhaar</Th>
-            <Th className="text-right">Actions</Th>
-          </tr>
-        </Thead>
-        <Tbody>
-          {filtered.length === 0 ? (
-            <EmptyRow cols={9} message="No artisans registered matching your filters." />
-          ) : (
-            filtered.map(a => {
-              const f = a.dynamicFields || {}
-              const village = villages.find(v => v.id === a.villageId)
-              const name = f.firstName || f.fullName || 'Artisan'
-              const hasTrident = f.tridentRelative && f.tridentRelative !== 'No'
+      {/* Desktop Artisans Table */}
+      <div className="hidden md:block">
+        <Table padding="compact">
+          <Thead>
+            <tr>
+              <Th>Artisan Name</Th>
+              <Th>Village</Th>
+              <Th>Age & Status</Th>
+              <Th>Caste</Th>
+              <Th>Education</Th>
+              <Th>Trident Relative?</Th>
+              <Th>Skill</Th>
+              <Th>Phone / Aadhaar</Th>
+              <Th className="text-right">Actions</Th>
+            </tr>
+          </Thead>
+          <Tbody>
+            {filtered.length === 0 ? (
+              <EmptyRow cols={9} message="No artisans registered matching your filters." />
+            ) : (
+              filtered.map(a => {
+                const f = a.dynamicFields || {}
+                const village = villages.find(v => v.id === a.villageId)
+                const name = f.firstName || f.fullName || 'Artisan'
+                const hasTrident = f.tridentRelative && f.tridentRelative !== 'No'
 
-              return (
-                <Tr key={a.id}>
-                  {/* Name + Photo */}
-                  <Td>
-                    <div className="flex items-center gap-2.5">
-                      {f.photo ? (
-                        <img src={f.photo} alt={name} className="w-8 h-8 rounded-full object-cover border border-primary-200 flex-shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm flex-shrink-0">
-                          👩
+                return (
+                  <Tr key={a.id}>
+                    {/* Name + Photo */}
+                    <Td>
+                      <div className="flex items-center gap-2.5">
+                        {f.photo ? (
+                          <img src={f.photo} alt={name} className="w-8 h-8 rounded-full object-cover border border-primary-200 flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm flex-shrink-0">
+                            👩
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm leading-tight">{name}</p>
+                          <span className="text-[10px] text-gray-400">Reg: {formatDate(a.createdAt)}</span>
                         </div>
-                      )}
-                      <div>
-                        <p className="font-bold text-gray-900 text-sm leading-tight">{name}</p>
-                        <span className="text-[10px] text-gray-400">Reg: {formatDate(a.createdAt)}</span>
                       </div>
-                    </div>
-                  </Td>
+                    </Td>
 
-                  {/* Village */}
-                  <Td>
-                    <span className="font-medium text-xs text-gray-800">{village?.name || '—'}</span>
-                  </Td>
+                    {/* Village */}
+                    <Td>
+                      <span className="font-medium text-xs text-gray-800">{village?.name || '—'}</span>
+                    </Td>
 
-                  {/* Age & Marital Status */}
-                  <Td>
-                    <div className="text-xs">
-                      <span className="font-bold text-gray-900">{f.age ? `${f.age} yrs` : '—'}</span>
-                      <p className="text-[10px] text-gray-400">{f.maritalStatus || '—'}</p>
-                    </div>
-                  </Td>
+                    {/* Age & Marital Status */}
+                    <Td>
+                      <div className="text-xs">
+                        <span className="font-bold text-gray-900">{f.age ? `${f.age} yrs` : '—'}</span>
+                        <p className="text-[10px] text-gray-400">{f.maritalStatus || '—'}</p>
+                      </div>
+                    </Td>
 
-                  {/* Caste */}
-                  <Td>
-                    <Badge variant="secondary">{f.caste || '—'}</Badge>
-                  </Td>
+                    {/* Caste */}
+                    <Td>
+                      <Badge variant="secondary">{f.caste || '—'}</Badge>
+                    </Td>
 
-                  {/* Education */}
-                  <Td>
-                    <span className="text-xs text-gray-700 font-medium">{f.education || '—'}</span>
-                  </Td>
+                    {/* Education */}
+                    <Td>
+                      <span className="text-xs text-gray-700 font-medium">{f.education || '—'}</span>
+                    </Td>
 
-                  {/* Trident Relative */}
-                  <Td>
-                    {hasTrident ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full" title={f.tridentRelativeDetails || f.tridentRelative}>
-                        <Building2 className="w-3 h-3" />
-                        {f.tridentRelative}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 font-medium">No</span>
-                    )}
-                  </Td>
-
-                  {/* Skill */}
-                  <Td>
-                    <Badge variant="primary">{f.craftSkill || 'Craft'}</Badge>
-                  </Td>
-
-                  {/* Phone / Aadhaar */}
-                  <Td>
-                    <div className="text-xs">
-                      <p className="font-semibold text-gray-800">{f.phone || '—'}</p>
-                      {f.aadhaarNumber && (
-                        <p className="text-[10px] text-gray-400 font-mono">{f.aadhaarNumber}</p>
+                    {/* Trident Relative */}
+                    <Td>
+                      {hasTrident ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full" title={f.tridentRelativeDetails || f.tridentRelative}>
+                          <Building2 className="w-3 h-3" />
+                          {f.tridentRelative}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 font-medium">No</span>
                       )}
+                    </Td>
+
+                    {/* Skill */}
+                    <Td>
+                      <Badge variant="primary">{f.craftSkill || 'Craft'}</Badge>
+                    </Td>
+
+                    {/* Phone / Aadhaar */}
+                    <Td>
+                      <div className="text-xs">
+                        <p className="font-semibold text-gray-800">{f.phone || '—'}</p>
+                        {f.aadhaarNumber && (
+                          <p className="text-[10px] text-gray-400 font-mono">{f.aadhaarNumber}</p>
+                        )}
+                      </div>
+                    </Td>
+
+                    {/* Actions */}
+                    <Td className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setProfileArtisan(a)}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title="View Full Profile"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setEditingArtisan(a)
+                            setModalOpen(true)
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Edit Details"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (confirm(`Remove artisan ${name}?`)) deleteArtisan(a.id)
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Artisan"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </Td>
+                  </Tr>
+                )
+              })
+            )}
+          </Tbody>
+        </Table>
+      </div>
+
+      {/* Mobile App Touch Cards View */}
+      <div className="block md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500 text-sm shadow-xs">
+            <User className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+            No artisans registered matching your filters.
+          </div>
+        ) : (
+          filtered.map(a => {
+            const f = a.dynamicFields || {}
+            const village = villages.find(v => v.id === a.villageId)
+            const name = f.firstName || f.fullName || 'Artisan'
+            const hasTrident = f.tridentRelative && f.tridentRelative !== 'No'
+
+            return (
+              <div
+                key={a.id}
+                className="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {f.photo ? (
+                      <img src={f.photo} alt={name} className="w-11 h-11 rounded-full object-cover border border-primary-200 flex-shrink-0" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-lg flex-shrink-0">
+                        👩
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-base leading-snug">{name}</h4>
+                      <p className="text-xs text-primary-700 font-medium mt-0.5">📍 {village?.name || 'Village'}</p>
                     </div>
-                  </Td>
+                  </div>
 
-                  {/* Actions */}
-                  <Td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setProfileArtisan(a)}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        title="View Full Profile"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                  <Badge variant="primary">{f.craftSkill || 'Craft'}</Badge>
+                </div>
 
-                      <button
-                        onClick={() => {
-                          setEditingArtisan(a)
-                          setModalOpen(true)
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit Details"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                <div className="grid grid-cols-2 gap-2 bg-gray-50/80 p-2.5 rounded-xl text-xs">
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Age & Status</span>
+                    <span className="font-bold text-gray-800">{f.age ? `${f.age} yrs` : '—'} • {f.maritalStatus || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Caste & Education</span>
+                    <span className="font-bold text-gray-800">{f.caste || '—'} • {f.education || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Phone</span>
+                    <span className="font-bold text-gray-800">{f.phone || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Trident Relative</span>
+                    <span className={`font-bold ${hasTrident ? 'text-amber-800' : 'text-gray-500'}`}>
+                      {hasTrident ? f.tridentRelative : 'No'}
+                    </span>
+                  </div>
+                </div>
 
-                      <button
-                        onClick={() => {
-                          if (confirm(`Remove artisan ${name}?`)) deleteArtisan(a.id)
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete Artisan"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </Td>
-                </Tr>
-              )
-            })
-          )}
-        </Tbody>
-      </Table>
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setProfileArtisan(a)}
+                    className="flex-1 rounded-xl text-xs"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>View Profile</span>
+                  </Button>
+
+                  <button
+                    onClick={() => {
+                      setEditingArtisan(a)
+                      setModalOpen(true)
+                    }}
+                    className="p-2 text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                    title="Edit Details"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (confirm(`Remove artisan ${name}?`)) deleteArtisan(a.id)
+                    }}
+                    className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                    title="Delete Artisan"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
 
       {/* Modal: Register / Edit Artisan */}
       {modalOpen && (

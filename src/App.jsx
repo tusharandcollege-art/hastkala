@@ -6,6 +6,7 @@ import SupplyProduction from '@/pages/SupplyProduction'
 import InventoryPage from '@/pages/InventoryPage'
 import SalesPage from '@/pages/SalesPage'
 import Analytics from '@/pages/Analytics'
+import ReportsPage from '@/pages/ReportsPage'
 import LoginPage from '@/pages/LoginPage'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/sales"     element={<SalesPage />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/reports"   element={<ReportsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
