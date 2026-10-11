@@ -57,12 +57,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {changeSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl">
-                {changeSuccess}
-              </div>
-            )}
-
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                 Username
