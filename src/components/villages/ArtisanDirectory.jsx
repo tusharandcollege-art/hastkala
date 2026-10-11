@@ -19,14 +19,14 @@ const EDUCATION_OPTIONS = [
   'Graduate',
   'Post Graduate / Other'
 ]
-const TRIDENT_OPTIONS = ['No', 'Yes - Factory / Plant', 'Yes - Office / Staff', 'Yes - Other']
+const TRIDENT_OPTIONS = ['No', 'Yes']
 const CRAFT_SKILL_OPTIONS = ['Weaving', 'Embroidery', 'Pottery', 'Basket Weaving', 'Block Printing', 'Jewellery Making', 'Other']
 
 // ─── Modal Form: Register / Edit Artisan ──────────────────────────────────────
 
 function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave }) {
   const fields = artisan?.dynamicFields || {}
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
       villageId: artisan?.villageId || defaultVillageId || villages[0]?.id || '',
       firstName: fields.firstName || fields.fullName || '',
@@ -35,14 +35,11 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
       caste: fields.caste || 'OBC',
       aadhaarNumber: fields.aadhaarNumber || '',
       education: fields.education || 'High School (10th Pass)',
-      tridentRelative: fields.tridentRelative || 'No',
-      tridentRelativeDetails: fields.tridentRelativeDetails || '',
+      tridentRelative: fields.tridentRelative === 'Yes' || (typeof fields.tridentRelative === 'string' && fields.tridentRelative.startsWith('Yes')) ? 'Yes' : 'No',
       phone: fields.phone || '',
       craftSkill: fields.craftSkill || 'Weaving'
     }
   })
-
-  const tridentRelativeValue = watch('tridentRelative')
 
   const onSubmit = (data) => {
     onSave({
@@ -56,8 +53,7 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
         caste: data.caste,
         aadhaarNumber: data.aadhaarNumber,
         education: data.education,
-        tridentRelative: data.tridentRelative,
-        tridentRelativeDetails: data.tridentRelativeDetails,
+        tridentRelative: data.tridentRelative || 'No',
         phone: data.phone,
         craftSkill: data.craftSkill
       }
@@ -149,8 +145,8 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
           </div>
         </div>
 
-        {/* Row 4: Trident Relative question */}
-        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-3">
+        {/* Row 4: Trident Relative question (Yes or No only) */}
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-2">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-amber-700" />
             <label className="text-xs font-bold text-amber-900 uppercase tracking-wider">
@@ -158,23 +154,10 @@ function ArtisanFormModal({ artisan, villages, defaultVillageId, onClose, onSave
             </label>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <select className="input bg-white" {...register('tridentRelative')}>
-                {TRIDENT_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-
-            {tridentRelativeValue && tridentRelativeValue !== 'No' && (
-              <div>
-                <input
-                  type="text"
-                  className="input bg-white"
-                  placeholder="Relative name, relationship & department"
-                  {...register('tridentRelativeDetails')}
-                />
-              </div>
-            )}
+          <div>
+            <select className="input bg-white" {...register('tridentRelative')}>
+              {TRIDENT_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
         </div>
 
@@ -278,9 +261,6 @@ function ArtisanProfileModal({ artisan, village, onClose }) {
             </span>
           </div>
           <p className="font-bold text-sm text-gray-900">{f.tridentRelative || 'No'}</p>
-          {f.tridentRelativeDetails && (
-            <p className="text-gray-600 mt-1 italic text-[11px]">{f.tridentRelativeDetails}</p>
-          )}
         </div>
 
         <div className="flex justify-end pt-2 border-t border-gray-100">
